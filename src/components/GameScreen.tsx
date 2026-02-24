@@ -40,6 +40,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
   const [scoreboardCollapsed, setScoreboardCollapsed] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showCheat, setShowCheat] = useState(false);
 
   // Get the active local player (current player if human)
   const activePlayer = getActiveLocalPlayer();
@@ -182,6 +183,29 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
           {/* Right: Controls */}
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button
+              onClick={() => setShowCheat(!showCheat)}
+              style={{
+                padding: '0.5rem 1rem',
+                background: showCheat ? 'rgba(255, 215, 0, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+                border: `2px solid ${showCheat ? 'var(--accent-gold)' : 'rgba(255, 255, 255, 0.2)'}`,
+                borderRadius: '8px',
+                color: showCheat ? 'var(--accent-gold)' : 'var(--text-light)',
+                fontSize: '0.6rem',
+                cursor: 'pointer',
+                fontFamily: 'Press Start 2P, cursive',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent-gold)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = showCheat ? 'var(--accent-gold)' : 'rgba(255, 255, 255, 0.2)';
+              }}
+              title="Toggle rule visibility (cheat mode)"
+            >
+              👁
+            </button>
+            <button
               onClick={() => setShowHelp(true)}
               style={{
                 padding: '0.5rem 1rem',
@@ -232,6 +256,26 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <MainLineBoard mainLine={state.mainLine} prophetMarkerIndex={state.prophetMarkerIndex} />
         </div>
+
+        {/* Cheat Mode - Show Rule */}
+        {showCheat && state.dealerRule && (
+          <div
+            style={{
+              padding: '1rem',
+              background: 'rgba(255, 215, 0, 0.2)',
+              border: '2px solid var(--accent-gold)',
+              borderRadius: '8px',
+              textAlign: 'center',
+              fontSize: '0.6rem',
+              color: 'var(--text-light)',
+              marginBottom: '1rem',
+            }}
+          >
+            <span style={{ color: 'var(--accent-gold)', fontWeight: 'bold' }}>🔍 CHEAT MODE:</span>
+            {' '}
+            <span style={{ color: 'var(--text-light)' }}>{state.dealerRule}</span>
+          </div>
+        )}
 
         {/* Prophet Status Bar (when not predicting) */}
         {prophetPlayer && !showProphetPanel && state.phase !== 'game_over' && (
@@ -335,6 +379,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
             <Scoreboard
               players={state.players}
               currentPlayerIndex={state.currentPlayerIndex}
+              gameState={state}
             />
 
             <div

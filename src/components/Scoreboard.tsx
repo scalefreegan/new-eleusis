@@ -3,15 +3,17 @@
  */
 
 import React from 'react';
-import type { Player } from '../engine/types';
+import type { Player, GameState } from '../engine/types';
+import { calculatePlayerScore, calculateDealerScore } from '../engine/scoring';
 import { motion } from 'framer-motion';
 
 interface ScoreboardProps {
   players: Player[];
   currentPlayerIndex: number;
+  gameState: GameState;
 }
 
-export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIndex }) => {
+export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIndex, gameState }) => {
   return (
     <div style={{ width: '100%' }}>
       <h2
@@ -28,6 +30,11 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
         {players.map((player, index) => {
           const isCurrent = index === currentPlayerIndex;
           const isExpelled = player.isExpelled;
+
+          // Calculate live score
+          const currentScore = player.isDealer
+            ? calculateDealerScore(gameState)
+            : calculatePlayerScore(player, gameState);
 
           return (
             <motion.div
@@ -134,7 +141,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
                         : 'var(--accent-gold)',
                     }}
                   >
-                    {player.score}
+                    {currentScore}
                   </span>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
