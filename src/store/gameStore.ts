@@ -72,6 +72,13 @@ export const useGameStore = create<GameStore>()(
       }, 300);
     }
 
+    // After DECLARE_PROPHET, end turn and advance to next player
+    if (action.type === 'DECLARE_PROPHET') {
+      setTimeout(() => {
+        get().dispatch({ type: 'END_TURN' });
+      }, 400);
+    }
+
     // After PLAY_CARD with AI dealer, auto-judge the cards
     if (action.type === 'PLAY_CARD' && newState.pendingPlay) {
       const { aiDealer } = get();
