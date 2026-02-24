@@ -77,8 +77,12 @@ export const useGameStore = create<GameStore>()(
       const { aiDealer } = get();
       const player = newState.players.find(p => p.id === action.playerId);
 
-      // Only auto-judge if there's an AI dealer and player is not AI (human player's cards need judgment)
-      if (aiDealer && player && player.type === 'human' && newState.mainLine.length > 0) {
+      // Check if a Prophet needs to predict before judgment
+      const prophetPlayer = newState.players.find(p => p.isProphet && p.type === 'human' && !p.isDealer);
+      const shouldWaitForProphet = prophetPlayer && prophetPlayer.id !== action.playerId;
+
+      // Only auto-judge if there's an AI dealer, no Prophet awaiting prediction, and player is human
+      if (aiDealer && player && player.type === 'human' && newState.mainLine.length > 0 && !shouldWaitForProphet) {
         const cardIds = newState.pendingPlay.cards.map(c => c.id);
 
         // Judge each card sequentially
@@ -111,15 +115,56 @@ export const useGameStore = create<GameStore>()(
       }
     }
 
-    // After JUDGE_CARD clears pendingPlay, auto-dispatch END_TURN (except for AI players who handle it themselves)
+    // After PROPHET_PREDICT with AI dealer, auto-judge the predicted card
+    if (action.type === 'PROPHET_PREDICT' && newState.pendingPlay) {
+      const { aiDealer } = get();
+      if (aiDealer && newState.mainLine.length > 0) {
+        const card = newState.pendingPlay.cards.find(c => c.id === action.cardId);
+        if (card) {
+          setTimeout(() => {
+            const currentState = get().state;
+            if (currentState.mainLine.length > 0 && currentState.pendingPlay) {
+              const pendingCard = currentState.pendingPlay.cards.find(c => c.id === action.cardId);
+              if (pendingCard) {
+                const lastCard = currentState.mainLine[currentState.mainLine.length - 1];
+                const isCorrect = aiDealer.judgeCard(lastCard, pendingCard);
+
+                setTimeout(() => {
+                  if (isCorrect) {
+                    sounds.playCorrect();
+                  } else {
+                    sounds.playWrong();
+                  }
+                }, 150);
+
+                get().dispatch({
+                  type: 'JUDGE_CARD',
+                  cardId: action.cardId,
+                  correct: isCorrect,
+                });
+              }
+            }
+          }, 600);
+        }
+      }
+    }
+
+    // After JUDGE_CARD clears pendingPlay, auto-dispatch END_TURN
     if (action.type === 'JUDGE_CARD') {
       const currentPlayer = newState.players[newState.currentPlayerIndex];
 
-      // If pendingPlay was cleared and current player is human, end their turn
-      if (!newState.pendingPlay && previousState.pendingPlay && currentPlayer?.type === 'human') {
-        setTimeout(() => {
-          get().dispatch({ type: 'END_TURN' });
-        }, 400);
+      if (!newState.pendingPlay && previousState.pendingPlay) {
+        // Dispatch END_TURN for:
+        // 1. Human players (always need auto END_TURN)
+        // 2. AI players when Prophet flow is active (executeAITurn doesn't schedule END_TURN in that case)
+        const prophetPlayer = newState.players.find(p => p.isProphet && !p.isDealer);
+        const wasInProphetFlow = prophetPlayer && previousState.pendingPlay.playerId !== prophetPlayer.id;
+
+        if (currentPlayer?.type === 'human' || wasInProphetFlow) {
+          setTimeout(() => {
+            get().dispatch({ type: 'END_TURN' });
+          }, 400);
+        }
       }
     }
   },
@@ -223,6 +268,9 @@ export const useGameStore = create<GameStore>()(
       return;
     }
 
+    // Check if a human Prophet needs to predict before judgment
+    const prophetPlayer = state.players.find(p => p.isProphet && p.type === 'human' && !p.isDealer);
+
     // Dispatch PLAY_CARD through reducer
     setTimeout(() => {
       sounds.playCardPlace();
@@ -232,7 +280,14 @@ export const useGameStore = create<GameStore>()(
         cardIds,
       });
 
-      // Judge each card sequentially
+      // If there's a human Prophet, wait for their predictions before judging.
+      // The PROPHET_PREDICT handler will trigger auto-judgment for each card,
+      // and the JUDGE_CARD handler will dispatch END_TURN when all cards are done.
+      if (prophetPlayer) {
+        return;
+      }
+
+      // No Prophet - judge each card sequentially (existing behavior)
       cardIds.forEach((cardId, i) => {
         setTimeout(() => {
           const currentState = get().state;
@@ -312,9 +367,10 @@ export const useGameStore = create<GameStore>()(
 
   makeProphetPrediction: (prediction: boolean) => {
     const { state, dispatch } = get();
-    const currentPlayer = state.players[state.currentPlayerIndex];
+    // Find the actual Prophet player (not the current turn player)
+    const prophetPlayer = state.players.find(p => p.isProphet && !p.isDealer);
 
-    if (!currentPlayer || !currentPlayer.isProphet || !state.pendingPlay) {
+    if (!prophetPlayer || !state.pendingPlay) {
       return;
     }
 
@@ -323,7 +379,7 @@ export const useGameStore = create<GameStore>()(
     if (nextCard) {
       dispatch({
         type: 'PROPHET_PREDICT',
-        playerId: currentPlayer.id,
+        playerId: prophetPlayer.id,
         cardId: nextCard.id,
         prediction,
       });

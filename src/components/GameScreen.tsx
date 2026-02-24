@@ -46,6 +46,9 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
   const currentPlayer = getCurrentPlayer();
   const isLocalPlayerTurn = !!activePlayer;
 
+  // Find the local human Prophet player (may not be the current turn player)
+  const prophetPlayer = state.players.find(p => p.isProphet && p.type === 'human' && !p.isDealer);
+
   const handleCardClick = (cardId: string) => {
     toggleCardSelection(cardId);
   };
@@ -106,14 +109,14 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
 
   // Scores are now displayed in Scoreboard component
 
-  // Show Prophet prediction panel if local player is Prophet and someone else is playing
-  const showProphetPanel = activePlayer?.isProphet && !isLocalPlayerTurn && currentPlayer && state.phase === 'playing';
+  // Show Prophet prediction panel if local human Prophet exists and another player's cards are pending
+  const showProphetPanel = !!prophetPlayer && !!state.pendingPlay && state.pendingPlay.cards.length > 0 && state.pendingPlay.playerId !== prophetPlayer.id && state.phase !== 'game_over';
 
   // Show Dealer control panel if local player is dealer and a card is awaiting judgment
   const showDealerPanel = currentPlayer?.isDealer && currentPlayer.type === 'human' && state.phase === 'awaiting_judgment' && state.pendingPlay && state.pendingPlay.cards.length > 0;
 
   // Extract IDs for use in JSX (avoids TypeScript narrowing issues)
-  const prophetId = activePlayer?.id;
+  const prophetId = prophetPlayer?.id;
 
   return (
     <div
@@ -163,7 +166,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
                 ? `Your Turn${activePlayer?.isProphet ? ' 👑' : ''}`
                 : `${currentPlayer?.name}'s Turn${currentPlayer?.isProphet ? ' 👑' : ''}`}
             </p>
-            {activePlayer?.isProphet && (
+            {prophetPlayer && (
               <p
                 style={{
                   fontSize: '0.5rem',
