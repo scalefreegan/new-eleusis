@@ -18,7 +18,7 @@ interface StartMenuProps {
 export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const { hasSavedGame, loadSavedGame, lastGodIndex } = useGameStore();
+  const { hasSavedGame, loadSavedGame, lastGodIndex, trueProphetIndex } = useGameStore();
 
   // Default: AI dealer, 1 human player, 2 AI players
   const [playerConfigs, setPlayerConfigs] = useState<PlayerConfig[]>([
@@ -96,8 +96,13 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
     onStartGame(playerConfigs);
   };
 
-  // Calculate which player will be God next (based on rotation)
-  const nextGodIndex = (lastGodIndex + 1) % playerConfigs.length;
+  // Calculate which player will be God next
+  // True Prophet takes precedence over rotation
+  const nextGodIndex = trueProphetIndex >= 0
+    ? trueProphetIndex
+    : (lastGodIndex + 1) % playerConfigs.length;
+
+  const isTrueProphetGod = trueProphetIndex >= 0;
 
   const handleContinue = () => {
     loadSavedGame();
@@ -231,7 +236,10 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
               marginBottom: '0.75rem',
             }}
           >
-            GOD {lastGodIndex >= 0 && <span style={{ fontSize: '0.45rem', color: 'var(--text-dim)' }}>(rotates each game)</span>}
+            GOD {isTrueProphetGod
+              ? <span style={{ fontSize: '0.45rem', color: 'var(--accent-gold)' }}>(True Prophet!)</span>
+              : lastGodIndex >= 0 && <span style={{ fontSize: '0.45rem', color: 'var(--text-dim)' }}>(rotates each game)</span>
+            }
           </label>
           <div
             style={{
@@ -267,7 +275,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                     fontWeight: 'bold',
                   }}
                 >
-                  👑 Next God
+                  👑 {isTrueProphetGod ? 'True Prophet!' : 'Next God'}
                 </div>
               )}
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -421,7 +429,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                         fontWeight: 'bold',
                       }}
                     >
-                      👑 Next God
+                      👑 {isTrueProphetGod ? 'True Prophet!' : 'Next God'}
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: '0.5rem' }}>

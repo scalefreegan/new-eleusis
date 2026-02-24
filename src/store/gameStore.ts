@@ -23,6 +23,7 @@ interface GameStore {
   transitionTargetName: string;
   hasSavedGame: boolean;
   lastGodIndex: number; // Track which player was God last game for rotation
+  trueProphetIndex: number; // Track True Prophet (becomes next God, -1 if none)
 
   // Actions
   dispatch: (action: GameAction) => void;
@@ -61,6 +62,7 @@ export const useGameStore = create<GameStore>()(
       transitionTargetName: '',
       hasSavedGame: false,
       lastGodIndex: -1, // -1 means no previous God, start with first player
+      trueProphetIndex: -1, // -1 means no True Prophet
 
   dispatch: (action: GameAction) => {
     const previousState = get().state;
@@ -79,6 +81,16 @@ export const useGameStore = create<GameStore>()(
       setTimeout(() => {
         get().dispatch({ type: 'END_TURN' });
       }, 400);
+    }
+
+    // After END_GAME, check for True Prophet
+    if (action.type === 'END_GAME') {
+      const trueProphet = newState.players.find(p => p.isProphet);
+      if (trueProphet) {
+        // Find the index of the True Prophet in the original configs order
+        const trueProphetIndex = newState.players.findIndex(p => p.id === trueProphet.id);
+        set({ trueProphetIndex });
+      }
     }
 
     // After PLAY_CARD with AI dealer, auto-judge the cards
@@ -230,10 +242,14 @@ export const useGameStore = create<GameStore>()(
   },
 
   startNewGame: (configs: PlayerConfig[]) => {
-    const { lastGodIndex } = get();
+    const { lastGodIndex, trueProphetIndex } = get();
 
-    // Determine next God index (rotate through all players)
-    const nextGodIndex = (lastGodIndex + 1) % configs.length;
+    // Determine next God index
+    // If there was a True Prophet (not overthrown), they become next God
+    // Otherwise, rotate through all players sequentially
+    const nextGodIndex = trueProphetIndex >= 0
+      ? trueProphetIndex
+      : (lastGodIndex + 1) % configs.length;
 
     // Update configs to set the next player as God
     const rotatedConfigs = configs.map((config, index) => ({
@@ -299,6 +315,7 @@ export const useGameStore = create<GameStore>()(
       showTransitionOverlay: false,
       transitionTargetName: '',
       lastGodIndex: nextGodIndex, // Store current God index for next rotation
+      trueProphetIndex: -1, // Reset True Prophet for new game
     });
 
     // Advance to next actionable player
@@ -451,6 +468,7 @@ export const useGameStore = create<GameStore>()(
       transitionTargetName: '',
       hasSavedGame: false,
       lastGodIndex: -1, // Reset God rotation
+      trueProphetIndex: -1, // Reset True Prophet
     });
   },
 
@@ -511,6 +529,7 @@ export const useGameStore = create<GameStore>()(
         godRuleName: state.aiGod?.getRuleName() || null,
         hasSavedGame: state.state.phase !== 'setup',
         lastGodIndex: state.lastGodIndex,
+        trueProphetIndex: state.trueProphetIndex,
       }),
       onRehydrateStorage: () => (state) => {
         // After rehydration, reconstruct AIDealer if needed

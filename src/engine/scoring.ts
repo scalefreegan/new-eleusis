@@ -49,9 +49,6 @@ export function calculatePlayerScore(player: Player, state: GameState): number {
     }
   }
 
-  // Penalty for sudden death markers
-  score -= player.suddenDeathMarkers * 5;
-
   return score;
 }
 
