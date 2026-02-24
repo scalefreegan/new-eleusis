@@ -22,10 +22,10 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
 
   // Default: AI dealer, 1 human player, 2 AI players
   const [playerConfigs, setPlayerConfigs] = useState<PlayerConfig[]>([
-    { name: 'Dealer', type: 'ai', isDealer: true },
-    { name: 'You', type: 'human', isDealer: false },
-    { name: 'AI Player 1', type: 'ai', isDealer: false },
-    { name: 'AI Player 2', type: 'ai', isDealer: false },
+    { name: 'Dealer', type: 'ai', isGod: true },
+    { name: 'You', type: 'human', isGod: false },
+    { name: 'AI Player 1', type: 'ai', isGod: false },
+    { name: 'AI Player 2', type: 'ai', isGod: false },
   ]);
 
   const [dealerRule, setDealerRule] = useState('');
@@ -49,7 +49,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
     const aiCount = playerList.filter(p => p.type === 'ai').length;
     setPlayerConfigs([
       ...playerConfigs,
-      { name: `AI Player ${aiCount + 1}`, type: 'ai', isDealer: false },
+      { name: `AI Player ${aiCount + 1}`, type: 'ai', isGod: false },
     ]);
   };
 
@@ -64,28 +64,28 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
       case 'solo':
         // 1 human vs AI (current behavior)
         setPlayerConfigs([
-          { name: 'Dealer', type: 'ai', isDealer: true },
-          { name: 'You', type: 'human', isDealer: false },
-          { name: 'AI Player 1', type: 'ai', isDealer: false },
-          { name: 'AI Player 2', type: 'ai', isDealer: false },
+          { name: 'Dealer', type: 'ai', isGod: true },
+          { name: 'You', type: 'human', isGod: false },
+          { name: 'AI Player 1', type: 'ai', isGod: false },
+          { name: 'AI Player 2', type: 'ai', isGod: false },
         ]);
         break;
       case 'duo':
         // 2 humans
         setPlayerConfigs([
-          { name: 'Dealer', type: 'ai', isDealer: true },
-          { name: 'Player 1', type: 'human', isDealer: false },
-          { name: 'Player 2', type: 'human', isDealer: false },
+          { name: 'Dealer', type: 'ai', isGod: true },
+          { name: 'Player 1', type: 'human', isGod: false },
+          { name: 'Player 2', type: 'human', isGod: false },
         ]);
         break;
       case 'party':
         // 4 players
         setPlayerConfigs([
-          { name: 'Dealer', type: 'ai', isDealer: true },
-          { name: 'Player 1', type: 'human', isDealer: false },
-          { name: 'Player 2', type: 'human', isDealer: false },
-          { name: 'Player 3', type: 'human', isDealer: false },
-          { name: 'Player 4', type: 'human', isDealer: false },
+          { name: 'Dealer', type: 'ai', isGod: true },
+          { name: 'Player 1', type: 'human', isGod: false },
+          { name: 'Player 2', type: 'human', isGod: false },
+          { name: 'Player 3', type: 'human', isGod: false },
+          { name: 'Player 4', type: 'human', isGod: false },
         ]);
         break;
     }

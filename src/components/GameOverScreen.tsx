@@ -19,7 +19,7 @@ export function GameOverScreen({ state, onPlayAgain, onMainMenu }: GameOverScree
 
   // Sort players by score (descending)
   const sortedPlayers = [...state.players]
-    .filter(p => !p.isDealer)
+    .filter(p => !p.isGod)
     .sort((a, b) => scores[b.id] - scores[a.id]);
 
   const winner = sortedPlayers[0];

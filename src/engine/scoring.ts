@@ -56,17 +56,17 @@ export function calculatePlayerScore(player: Player, state: GameState): number {
 }
 
 /**
- * Calculate score for the dealer (Official Rules)
+ * Calculate score for the god (Official Rules)
  */
-export function calculateDealerScore(state: GameState): number {
-  const dealer = state.players.find(p => p.isDealer);
-  if (!dealer) {
+export function calculateGodScore(state: GameState): number {
+  const god = state.players.find(p => p.isGod);
+  if (!god) {
     return 0;
   }
 
-  // Find highest player score (non-dealer)
+  // Find highest player score (non-god)
   const playerScores = state.players
-    .filter(p => !p.isDealer)
+    .filter(p => !p.isGod)
     .map(p => calculatePlayerScore(p, state));
   const highestPlayerScore = playerScores.length > 0 ? Math.max(...playerScores) : 0;
 
@@ -76,7 +76,7 @@ export function calculateDealerScore(state: GameState): number {
     cardsBeforeProphet = state.prophetMarkerIndex + 1;
   }
 
-  // Dealer score = min(highest player score, 2 * cards played before Prophet)
+  // God score = min(highest player score, 2 * cards played before Prophet)
   const score = Math.min(highestPlayerScore, 2 * cardsBeforeProphet);
 
   return score;
@@ -89,8 +89,8 @@ export function calculateFinalScores(state: GameState): Record<string, number> {
   const scores: Record<string, number> = {};
 
   for (const player of state.players) {
-    if (player.isDealer) {
-      scores[player.id] = calculateDealerScore(state);
+    if (player.isGod) {
+      scores[player.id] = calculateGodScore(state);
     } else {
       scores[player.id] = calculatePlayerScore(player, state);
     }

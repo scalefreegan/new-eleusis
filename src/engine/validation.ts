@@ -30,7 +30,7 @@ export function canPlayCard(state: GameState, playerId: string): boolean {
   }
 
   // Player cannot be the dealer
-  if (currentPlayer.isDealer) {
+  if (currentPlayer.isGod) {
     return false;
   }
 
@@ -62,7 +62,7 @@ export function canDeclareProphet(state: GameState, playerId: string): boolean {
   }
 
   // Player cannot be the dealer
-  if (player.isDealer) {
+  if (player.isGod) {
     return false;
   }
 
@@ -151,7 +151,7 @@ export function shouldGameEnd(state: GameState): boolean {
   }
 
   // All non-dealer players are expelled
-  const activePlayers = state.players.filter(p => !p.isDealer && !p.isExpelled);
+  const activePlayers = state.players.filter(p => !p.isGod && !p.isExpelled);
   if (activePlayers.length === 0) {
     return true;
   }
@@ -189,7 +189,7 @@ export function canDisputeNoPlay(state: GameState, playerId: string): boolean {
   }
 
   // Cannot dispute if dealer
-  if (player.isDealer) {
+  if (player.isGod) {
     return false;
   }
 

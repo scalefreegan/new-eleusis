@@ -19,7 +19,7 @@ export interface Player {
   hand: Card[];
   score: number;
   isProphet: boolean;
-  isDealer: boolean;
+  isGod: boolean;
   type: PlayerType;
   suddenDeathMarkers: number;
   isExpelled: boolean;
@@ -65,7 +65,7 @@ export interface PendingPlay {
 export interface PlayerConfig {
   name: string;
   type: PlayerType;
-  isDealer: boolean;
+  isGod: boolean;
 }
 
 export interface GameState {
@@ -74,8 +74,8 @@ export interface GameState {
   currentPlayerIndex: number;
   deck: Card[];
   mainLine: PlayedCard[];
-  dealerRule: string;
-  dealerRuleFunction?: (lastCard: Card, newCard: Card) => boolean;
+  godRule: string;
+  godRuleFunction?: (lastCard: Card, newCard: Card) => boolean;
   noPlayDeclaration?: NoPlayDeclaration;
   pendingPlay?: PendingPlay;
   prophetsCorrectCount: number;
@@ -88,15 +88,15 @@ export interface GameState {
 }
 
 export type GameAction =
-  | { type: 'INIT_GAME'; dealerId: string; playerIds: string[]; dealerRule?: string }
-  | { type: 'SET_DEALER_RULE'; rule: string; ruleFunction?: (lastCard: Card, newCard: Card) => boolean }
+  | { type: 'INIT_GAME'; godId: string; playerIds: string[]; godRule?: string }
+  | { type: 'SET_GOD_RULE'; rule: string; ruleFunction?: (lastCard: Card, newCard: Card) => boolean }
   | { type: 'DEAL_CARDS'; count: number }
   | { type: 'PLAY_CARD'; playerId: string; cardIds: string[] }
   | { type: 'JUDGE_CARD'; cardId: string; correct: boolean }
   | { type: 'DECLARE_PROPHET'; playerId: string }
   | { type: 'RESIGN_PROPHET'; playerId: string }
   | { type: 'PROPHET_PREDICT'; playerId: string; cardId: string; prediction: boolean }
-  | { type: 'PROPHET_VERIFY'; prediction: boolean; dealerJudgment: boolean; cardId: string }
+  | { type: 'PROPHET_VERIFY'; prediction: boolean; godJudgment: boolean; cardId: string }
   | { type: 'OVERTHROW_PROPHET'; prophetId: string }
   | { type: 'DECLARE_NO_PLAY'; playerId: string }
   | { type: 'DISPUTE_NO_PLAY'; disputerId: string }

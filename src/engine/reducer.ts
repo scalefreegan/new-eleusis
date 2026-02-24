@@ -17,7 +17,7 @@ export function createInitialState(): GameState {
     currentPlayerIndex: 0,
     deck: [],
     mainLine: [],
-    dealerRule: '',
+    godRule: '',
     pendingPlay: undefined,
     prophetsCorrectCount: 0,
     prophetMarkerIndex: undefined,
@@ -32,7 +32,7 @@ export function createInitialState(): GameState {
 /**
  * Initialize a new game
  */
-function initGame(state: GameState, action: { type: 'INIT_GAME'; dealerId: string; playerIds: string[]; dealerRule?: string }): GameState {
+function initGame(state: GameState, action: { type: 'INIT_GAME'; godId: string; playerIds: string[]; godRule?: string }): GameState {
   // Create players
   const players: Player[] = action.playerIds.map(id => ({
     id,
@@ -40,7 +40,7 @@ function initGame(state: GameState, action: { type: 'INIT_GAME'; dealerId: strin
     hand: [],
     score: 0,
     isProphet: false,
-    isDealer: id === action.dealerId,
+    isGod: id === action.godId,
     type: 'ai',
     suddenDeathMarkers: 0,
     isExpelled: false,
@@ -54,7 +54,7 @@ function initGame(state: GameState, action: { type: 'INIT_GAME'; dealerId: strin
     phase: 'dealing',
     players,
     deck,
-    dealerRule: action.dealerRule || '',
+    godRule: action.godRule || '',
     currentPlayerIndex: 0,
     mainLine: [],
     prophetsCorrectCount: 0,
@@ -64,13 +64,13 @@ function initGame(state: GameState, action: { type: 'INIT_GAME'; dealerId: strin
 }
 
 /**
- * Set the dealer's rule
+ * Set the god's rule
  */
-function setDealerRule(state: GameState, action: { type: 'SET_DEALER_RULE'; rule: string; ruleFunction?: (lastCard: Card, newCard: Card) => boolean }): GameState {
+function setGodRule(state: GameState, action: { type: 'SET_GOD_RULE'; rule: string; ruleFunction?: (lastCard: Card, newCard: Card) => boolean }): GameState {
   return {
     ...state,
-    dealerRule: action.rule,
-    dealerRuleFunction: action.ruleFunction,
+    godRule: action.rule,
+    godRuleFunction: action.ruleFunction,
   };
 }
 
@@ -80,7 +80,7 @@ function setDealerRule(state: GameState, action: { type: 'SET_DEALER_RULE'; rule
 function dealCardsToPlayers(state: GameState, action: { type: 'DEAL_CARDS'; count: number }): GameState {
   let remainingDeck = [...state.deck];
   const updatedPlayers = state.players.map(player => {
-    if (player.isDealer) {
+    if (player.isGod) {
       return player;
     }
 
@@ -101,7 +101,7 @@ function dealCardsToPlayers(state: GameState, action: { type: 'DEAL_CARDS'; coun
     mainLine = [{
       ...starterCard,
       correct: true,
-      playedBy: 'dealer',
+      playedBy: 'god',
     }];
   }
 
@@ -154,7 +154,7 @@ function playCard(state: GameState, action: { type: 'PLAY_CARD'; playerId: strin
 
   // If there's a dealer rule function (AI dealer), stay in 'playing' phase
   // If no dealer rule function (human dealer), transition to 'awaiting_judgment'
-  const newPhase = state.dealerRuleFunction ? 'playing' : 'awaiting_judgment';
+  const newPhase = state.godRuleFunction ? 'playing' : 'awaiting_judgment';
 
   return {
     ...state,
@@ -323,8 +323,8 @@ function prophetPredict(state: GameState, action: { type: 'PROPHET_PREDICT'; pla
 /**
  * Verify prophet's prediction
  */
-function prophetVerify(state: GameState, action: { type: 'PROPHET_VERIFY'; prediction: boolean; dealerJudgment: boolean; cardId: string }): GameState {
-  const predictionCorrect = action.prediction === action.dealerJudgment;
+function prophetVerify(state: GameState, action: { type: 'PROPHET_VERIFY'; prediction: boolean; godJudgment: boolean; cardId: string }): GameState {
+  const predictionCorrect = action.prediction === action.godJudgment;
 
   return {
     ...state,
@@ -520,7 +520,7 @@ function endTurn(state: GameState): GameState {
   while (
     iterations < updatedState.players.length &&
     (updatedState.players[nextPlayerIndex].isExpelled ||
-      updatedState.players[nextPlayerIndex].isDealer ||
+      updatedState.players[nextPlayerIndex].isGod ||
       updatedState.players[nextPlayerIndex].isProphet)
   ) {
     nextPlayerIndex = (nextPlayerIndex + 1) % updatedState.players.length;
@@ -559,8 +559,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'INIT_GAME':
       return initGame(state, action);
-    case 'SET_DEALER_RULE':
-      return setDealerRule(state, action);
+    case 'SET_GOD_RULE':
+      return setGodRule(state, action);
     case 'DEAL_CARDS':
       return dealCardsToPlayers(state, action);
     case 'PLAY_CARD':

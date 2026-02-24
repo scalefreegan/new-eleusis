@@ -48,7 +48,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
   const isLocalPlayerTurn = !!activePlayer;
 
   // Find the local human Prophet player (may not be the current turn player)
-  const prophetPlayer = state.players.find(p => p.isProphet && p.type === 'human' && !p.isDealer);
+  const prophetPlayer = state.players.find(p => p.isProphet && p.type === 'human' && !p.isGod);
 
   const handleCardClick = (cardId: string) => {
     toggleCardSelection(cardId);
@@ -114,7 +114,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
   const showProphetPanel = !!prophetPlayer && !!state.pendingPlay && state.pendingPlay.cards.length > 0 && state.pendingPlay.playerId !== prophetPlayer.id && state.phase !== 'game_over';
 
   // Show Dealer control panel if local player is dealer and a card is awaiting judgment
-  const showDealerPanel = currentPlayer?.isDealer && currentPlayer.type === 'human' && state.phase === 'awaiting_judgment' && state.pendingPlay && state.pendingPlay.cards.length > 0;
+  const showDealerPanel = currentPlayer?.isGod && currentPlayer.type === 'human' && state.phase === 'awaiting_judgment' && state.pendingPlay && state.pendingPlay.cards.length > 0;
 
   // Extract IDs for use in JSX (avoids TypeScript narrowing issues)
   const prophetId = prophetPlayer?.id;
@@ -258,7 +258,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
         </div>
 
         {/* Cheat Mode - Show Rule */}
-        {showCheat && state.dealerRule && (
+        {showCheat && state.godRule && (
           <div
             style={{
               padding: '1rem',
@@ -273,7 +273,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
           >
             <span style={{ color: 'var(--accent-gold)', fontWeight: 'bold' }}>🔍 CHEAT MODE:</span>
             {' '}
-            <span style={{ color: 'var(--text-light)' }}>{state.dealerRule}</span>
+            <span style={{ color: 'var(--text-light)' }}>{state.godRule}</span>
           </div>
         )}
 

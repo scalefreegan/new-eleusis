@@ -50,7 +50,7 @@ export {
 // Scoring
 export {
   calculatePlayerScore,
-  calculateDealerScore,
+  calculateGodScore,
   calculateFinalScores,
   getLeader,
 } from './scoring';

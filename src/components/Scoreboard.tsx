@@ -4,7 +4,7 @@
 
 import React from 'react';
 import type { Player, GameState } from '../engine/types';
-import { calculatePlayerScore, calculateDealerScore } from '../engine/scoring';
+import { calculatePlayerScore, calculateGodScore } from '../engine/scoring';
 import { motion } from 'framer-motion';
 
 interface ScoreboardProps {
@@ -32,8 +32,8 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
           const isExpelled = player.isExpelled;
 
           // Calculate live score
-          const currentScore = player.isDealer
-            ? calculateDealerScore(gameState)
+          const currentScore = player.isGod
+            ? calculateGodScore(gameState)
             : calculatePlayerScore(player, gameState);
 
           return (
