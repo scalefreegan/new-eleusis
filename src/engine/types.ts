@@ -1,0 +1,102 @@
+/**
+ * Core type definitions for New Eleusis card game
+ */
+
+export type Suit = 'hearts' | 'diamonds' | 'clubs' | 'spades';
+export type Rank = 'A' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K';
+
+export interface Card {
+  suit: Suit;
+  rank: Rank;
+  id: string;
+}
+
+export type PlayerType = 'human' | 'ai';
+
+export interface Player {
+  id: string;
+  name: string;
+  hand: Card[];
+  score: number;
+  isProphet: boolean;
+  isDealer: boolean;
+  type: PlayerType;
+  suddenDeathMarkers: number;
+  isExpelled: boolean;
+}
+
+export interface ProphetPrediction {
+  predictedBy: string;
+  prediction: boolean;
+}
+
+export interface PlayedCard extends Card {
+  correct: boolean;
+  playedBy: string;
+  prophetPrediction?: ProphetPrediction;
+  branches?: PlayedCard[];
+}
+
+export type GamePhase =
+  | 'setup'
+  | 'dealing'
+  | 'playing'
+  | 'awaiting_judgment'
+  | 'prophet_declaration'
+  | 'prophet_verify'
+  | 'no_play_dispute'
+  | 'sudden_death'
+  | 'game_over';
+
+export interface NoPlayDeclaration {
+  playerId: string;
+  hand: Card[];
+  disputed: boolean;
+  disputedBy?: string;
+}
+
+export interface PendingPlay {
+  playerId: string;
+  cards: Card[];
+  judgedCards: PlayedCard[];
+  predictions: Record<string, ProphetPrediction>;
+}
+
+export interface PlayerConfig {
+  name: string;
+  type: PlayerType;
+  isDealer: boolean;
+}
+
+export interface GameState {
+  phase: GamePhase;
+  players: Player[];
+  currentPlayerIndex: number;
+  deck: Card[];
+  mainLine: PlayedCard[];
+  dealerRule: string;
+  dealerRuleFunction?: (lastCard: Card, newCard: Card) => boolean;
+  noPlayDeclaration?: NoPlayDeclaration;
+  pendingPlay?: PendingPlay;
+  prophetsCorrectCount: number;
+  roundNumber: number;
+  gameStartTime: number;
+}
+
+export type GameAction =
+  | { type: 'INIT_GAME'; dealerId: string; playerIds: string[]; dealerRule?: string }
+  | { type: 'SET_DEALER_RULE'; rule: string; ruleFunction?: (lastCard: Card, newCard: Card) => boolean }
+  | { type: 'DEAL_CARDS'; count: number }
+  | { type: 'PLAY_CARD'; playerId: string; cardIds: string[] }
+  | { type: 'JUDGE_CARD'; cardId: string; correct: boolean }
+  | { type: 'DECLARE_PROPHET'; playerId: string }
+  | { type: 'RESIGN_PROPHET'; playerId: string }
+  | { type: 'PROPHET_PREDICT'; playerId: string; cardId: string; prediction: boolean }
+  | { type: 'PROPHET_VERIFY'; cardId: string; dealerJudgment: boolean }
+  | { type: 'DECLARE_NO_PLAY'; playerId: string }
+  | { type: 'DISPUTE_NO_PLAY'; disputerId: string }
+  | { type: 'RESOLVE_NO_PLAY'; valid: boolean }
+  | { type: 'ADD_SUDDEN_DEATH_MARKER'; playerId: string }
+  | { type: 'EXPEL_PLAYER'; playerId: string }
+  | { type: 'END_TURN' }
+  | { type: 'END_GAME' };

@@ -1,0 +1,187 @@
+/* Balatro-inspired Color Palette */
+:root {
+  /* Background colors */
+  --bg-deep: #1a0f2e;
+  --bg-purple: #2d1b4e;
+  --bg-blue: #1e3a5f;
+
+  /* Accent colors */
+  --accent-gold: #ffd700;
+  --accent-purple: #8a2be2;
+  --accent-blue: #4169e1;
+
+  /* Text colors */
+  --text-light: #f0f0f0;
+  --text-dim: #a0a0a0;
+
+  /* Card colors */
+  --card-bg: #ffffff;
+  --card-border: #d0d0d0;
+
+  /* Glass effect colors */
+  --glass-bg: rgba(30, 20, 50, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+
+  /* Suit colors */
+  --suit-red: #dc143c;
+  --suit-black: #000000;
+
+  /* Responsive card sizing (Desktop default) */
+  --card-width: 80px;
+  --card-height: 112px;
+  --card-font-size: 1.25rem;
+  --card-suit-size: 1.5rem;
+  --card-gap: 0.5rem;
+}
+
+/* Global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Press Start 2P', cursive;
+  background: var(--bg-deep);
+  color: var(--text-light);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* CRT Scanline Overlay */
+.crt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.crt-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.25) 50%
+  );
+  background-size: 100% 4px;
+  animation: scanline 8s linear infinite;
+}
+
+.crt-overlay::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.5) 100%
+  );
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(4px);
+  }
+}
+
+/* Custom scrollbar for MainLine */
+.mainline-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.mainline-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.mainline-scroll::-webkit-scrollbar-thumb {
+  background: var(--accent-purple);
+  border-radius: 4px;
+}
+
+.mainline-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-blue);
+}
+
+/* Responsive Design - Tablet */
+@media (max-width: 1024px) {
+  :root {
+    --card-width: 60px;
+    --card-height: 84px;
+    --card-font-size: 1rem;
+    --card-suit-size: 1.25rem;
+    --card-gap: 0.4rem;
+  }
+
+  body {
+    font-size: 14px;
+  }
+
+  /* Adjust game screen padding */
+  .game-container {
+    padding: 1rem !important;
+  }
+
+  /* Stack panels vertically on smaller screens */
+  .game-bottom-section {
+    flex-direction: column !important;
+  }
+}
+
+/* Responsive Design - Mobile */
+@media (max-width: 768px) {
+  :root {
+    --card-width: 50px;
+    --card-height: 70px;
+    --card-font-size: 0.85rem;
+    --card-suit-size: 1rem;
+    --card-gap: 0.3rem;
+  }
+
+  body {
+    font-size: 12px;
+  }
+
+  /* Further reduce spacing */
+  .game-container {
+    padding: 0.5rem !important;
+    gap: 1rem !important;
+  }
+
+  /* Make buttons smaller */
+  button {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.5rem !important;
+  }
+
+  /* Compact glass panels */
+  .glass-panel {
+    padding: 1rem !important;
+  }
+
+  /* Hide less critical UI elements */
+  .crt-overlay {
+    display: none;
+  }
+}
