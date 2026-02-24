@@ -157,7 +157,7 @@ export const useGameStore = create<GameStore>()(
         // Dispatch END_TURN for:
         // 1. Human players (always need auto END_TURN)
         // 2. AI players when Prophet flow is active (executeAITurn doesn't schedule END_TURN in that case)
-        const prophetPlayer = newState.players.find(p => p.isProphet && !p.isDealer);
+        const prophetPlayer = newState.players.find(p => p.isProphet && p.type === 'human' && !p.isDealer);
         const wasInProphetFlow = prophetPlayer && previousState.pendingPlay.playerId !== prophetPlayer.id;
 
         if (currentPlayer?.type === 'human' || wasInProphetFlow) {
