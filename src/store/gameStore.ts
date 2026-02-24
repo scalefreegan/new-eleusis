@@ -22,6 +22,7 @@ interface GameStore {
   showTransitionOverlay: boolean;
   transitionTargetName: string;
   hasSavedGame: boolean;
+  lastGodIndex: number; // Track which player was God last game for rotation
 
   // Actions
   dispatch: (action: GameAction) => void;
@@ -59,6 +60,7 @@ export const useGameStore = create<GameStore>()(
       showTransitionOverlay: false,
       transitionTargetName: '',
       hasSavedGame: false,
+      lastGodIndex: -1, // -1 means no previous God, start with first player
 
   dispatch: (action: GameAction) => {
     const previousState = get().state;
@@ -228,17 +230,28 @@ export const useGameStore = create<GameStore>()(
   },
 
   startNewGame: (configs: PlayerConfig[]) => {
-    // Find dealer config
-    const dealerConfig = configs.find(c => c.isGod);
-    if (!dealerConfig) {
-      throw new Error('No dealer specified in player configs');
+    const { lastGodIndex } = get();
+
+    // Determine next God index (rotate through all players)
+    const nextGodIndex = (lastGodIndex + 1) % configs.length;
+
+    // Update configs to set the next player as God
+    const rotatedConfigs = configs.map((config, index) => ({
+      ...config,
+      isGod: index === nextGodIndex,
+    }));
+
+    // Find god config
+    const godConfig = rotatedConfigs[nextGodIndex];
+    if (!godConfig) {
+      throw new Error('No god found in player configs');
     }
 
-    // Create AI dealer only if dealer is AI type
-    const aiGod = dealerConfig.type === 'ai' ? createAIDealer() : null;
+    // Create AI god only if god is AI type
+    const aiGod = godConfig.type === 'ai' ? createAIDealer() : null;
 
     // Generate player IDs from configs
-    const playerIds = configs.map((config, index) => {
+    const playerIds = rotatedConfigs.map((config, index) => {
       if (config.isGod) return 'god';
       return `player-${index}`;
     });
@@ -264,7 +277,7 @@ export const useGameStore = create<GameStore>()(
     state = {
       ...state,
       players: state.players.map((p, index) => {
-        const config = configs[index];
+        const config = rotatedConfigs[index];
         return {
           ...p,
           name: config.name,
@@ -285,6 +298,7 @@ export const useGameStore = create<GameStore>()(
       selectedCards: new Set(),
       showTransitionOverlay: false,
       transitionTargetName: '',
+      lastGodIndex: nextGodIndex, // Store current God index for next rotation
     });
 
     // Advance to next actionable player
@@ -436,6 +450,7 @@ export const useGameStore = create<GameStore>()(
       showTransitionOverlay: false,
       transitionTargetName: '',
       hasSavedGame: false,
+      lastGodIndex: -1, // Reset God rotation
     });
   },
 
@@ -495,6 +510,7 @@ export const useGameStore = create<GameStore>()(
         state: state.state,
         godRuleName: state.aiGod?.getRuleName() || null,
         hasSavedGame: state.state.phase !== 'setup',
+        lastGodIndex: state.lastGodIndex,
       }),
       onRehydrateStorage: () => (state) => {
         // After rehydration, reconstruct AIDealer if needed
