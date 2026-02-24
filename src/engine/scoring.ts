@@ -5,32 +5,49 @@
 import type { Player, GameState, PlayedCard } from './types';
 
 /**
- * Calculate score for a player based on played cards
+ * Helper function to flatten all played cards (main line + branches)
  */
-export function calculatePlayerScore(player: Player, playedCards: PlayedCard[]): number {
-  let score = 0;
-
-  // Score points for cards played correctly (in main line)
-  const correctCards = playedCards.filter(
-    pc => pc.playedBy === player.id && pc.correct
-  );
-  score += correctCards.length;
-
-  // Score points for successful prophet predictions
-  const prophetPredictions = playedCards.filter(
-    pc => pc.prophetPrediction?.predictedBy === player.id
-  );
-  for (const card of prophetPredictions) {
-    const predictionCorrect = card.prophetPrediction!.prediction === card.correct;
-    if (predictionCorrect) {
-      score += 2; // Bonus for correct prediction
-    } else {
-      score -= 1; // Penalty for wrong prediction
+function flattenPlayedCards(mainLine: PlayedCard[]): PlayedCard[] {
+  const all: PlayedCard[] = [];
+  for (const card of mainLine) {
+    all.push(card);
+    if (card.branches) {
+      all.push(...card.branches);
     }
   }
+  return all;
+}
 
-  // Penalty for cards left in hand at end of game
-  score -= player.hand.length;
+/**
+ * Calculate score for a player based on played cards (Official Rules)
+ */
+export function calculatePlayerScore(player: Player, state: GameState): number {
+  // Find highest hand count among all players (including prophet)
+  const highCount = Math.max(...state.players.map(p => p.hand.length));
+
+  // Base score: highCount - cardsInHand
+  let score = highCount - player.hand.length;
+
+  // Bonus for empty hand
+  if (player.hand.length === 0) {
+    score += 4;
+  }
+
+  // True Prophet bonus (only if still Prophet at game end)
+  if (player.isProphet && state.prophetMarkerIndex !== undefined) {
+    // Get cards played after the Prophet marker
+    const cardsAfterMarker = state.mainLine.slice(state.prophetMarkerIndex + 1);
+    const allCardsAfterMarker = flattenPlayedCards(cardsAfterMarker);
+
+    // +1 for each right card (main line), +2 for each wrong card (branch)
+    for (const card of allCardsAfterMarker) {
+      if (card.correct) {
+        score += 1;
+      } else {
+        score += 2;
+      }
+    }
+  }
 
   // Penalty for sudden death markers
   score -= player.suddenDeathMarkers * 5;
@@ -39,7 +56,7 @@ export function calculatePlayerScore(player: Player, playedCards: PlayedCard[]):
 }
 
 /**
- * Calculate score for the dealer
+ * Calculate score for the dealer (Official Rules)
  */
 export function calculateDealerScore(state: GameState): number {
   const dealer = state.players.find(p => p.isDealer);
@@ -47,27 +64,20 @@ export function calculateDealerScore(state: GameState): number {
     return 0;
   }
 
-  let score = 0;
-
-  // Count total incorrect plays by all players
-  const incorrectPlays = state.mainLine.filter(pc => !pc.correct);
-  score += incorrectPlays.length * 2;
-
-  // Bonus if dealer not overthrown (prophet didn't get 3 correct in a row)
-  if (state.prophetsCorrectCount < 3) {
-    score += 10;
-  }
-
-  // Penalty if dealer was overthrown
-  if (state.prophetsCorrectCount >= 3) {
-    score -= 15;
-  }
-
-  // Count cards remaining in all players' hands
-  const totalCardsRemaining = state.players
+  // Find highest player score (non-dealer)
+  const playerScores = state.players
     .filter(p => !p.isDealer)
-    .reduce((sum, p) => sum + p.hand.length, 0);
-  score += Math.floor(totalCardsRemaining / 5);
+    .map(p => calculatePlayerScore(p, state));
+  const highestPlayerScore = playerScores.length > 0 ? Math.max(...playerScores) : 0;
+
+  // Count cards played before Prophet started (if Prophet existed)
+  let cardsBeforeProphet = state.mainLine.length;
+  if (state.prophetMarkerIndex !== undefined) {
+    cardsBeforeProphet = state.prophetMarkerIndex + 1;
+  }
+
+  // Dealer score = min(highest player score, 2 * cards played before Prophet)
+  const score = Math.min(highestPlayerScore, 2 * cardsBeforeProphet);
 
   return score;
 }
@@ -82,7 +92,7 @@ export function calculateFinalScores(state: GameState): Record<string, number> {
     if (player.isDealer) {
       scores[player.id] = calculateDealerScore(state);
     } else {
-      scores[player.id] = calculatePlayerScore(player, state.mainLine);
+      scores[player.id] = calculatePlayerScore(player, state);
     }
   }
 

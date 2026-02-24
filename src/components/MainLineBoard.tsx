@@ -2,7 +2,7 @@
  * MainLineBoard component - displays the played cards
  */
 
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { Card } from './Card';
 import { GlassPanel } from './GlassPanel';
@@ -10,6 +10,7 @@ import type { PlayedCard } from '../engine';
 
 interface MainLineBoardProps {
   mainLine: PlayedCard[];
+  prophetMarkerIndex?: number;
 }
 
 function getSuitSymbol(suit: string): '♥' | '♦' | '♣' | '♠' {
@@ -22,7 +23,7 @@ function getSuitSymbol(suit: string): '♥' | '♦' | '♣' | '♠' {
   return suitMap[suit] || '♥';
 }
 
-export function MainLineBoard({ mainLine }: MainLineBoardProps) {
+export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -274,25 +275,31 @@ export function MainLineBoard({ mainLine }: MainLineBoardProps) {
               transition: isDragging ? 'none' : 'transform 0.2s',
             }}
           >
-            {mainLine.map((playedCard, index) => (
-              <motion.div
-                key={playedCard.id}
-                initial={{ opacity: 0, scale: 0.8, y: -20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{
-                  duration: 0.3,
-                  delay: index * 0.1,
-                  type: 'spring',
-                  stiffness: 200,
-                }}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.5rem',
-                  position: 'relative',
-                  flexShrink: 0,
-                }}
-              >
+            {mainLine.map((playedCard, index) => {
+              // Check if we should render a black marker after this card
+              const shouldShowMarker = prophetMarkerIndex !== undefined &&
+                (index === prophetMarkerIndex ||
+                 (index > prophetMarkerIndex && (index - prophetMarkerIndex) % 10 === 0));
+
+              return (
+                <React.Fragment key={playedCard.id}>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8, y: -20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{
+                      duration: 0.3,
+                      delay: index * 0.1,
+                      type: 'spring',
+                      stiffness: 200,
+                    }}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.5rem',
+                      position: 'relative',
+                      flexShrink: 0,
+                    }}
+                  >
                 {/* Main card */}
                 <div style={{ position: 'relative' }}>
                   <Card
@@ -393,7 +400,41 @@ export function MainLineBoard({ mainLine }: MainLineBoardProps) {
                   </div>
                 )}
               </motion.div>
-            ))}
+
+              {/* Black marker for Prophet */}
+              {shouldShowMarker && (
+                <div
+                  style={{
+                    width: '4px',
+                    height: '160px',
+                    background: 'black',
+                    border: '2px solid var(--accent-gold)',
+                    borderRadius: '2px',
+                    boxShadow: '0 0 10px rgba(255, 215, 0, 0.6)',
+                    position: 'relative',
+                    flexShrink: 0,
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%) rotate(-90deg)',
+                      fontSize: '0.4rem',
+                      color: 'var(--accent-gold)',
+                      whiteSpace: 'nowrap',
+                      fontWeight: 'bold',
+                      textShadow: '0 0 5px rgba(0, 0, 0, 0.8)',
+                    }}
+                  >
+                    {index === prophetMarkerIndex ? 'PROPHET' : '10'}
+                  </div>
+                </div>
+              )}
+            </React.Fragment>
+              );
+            })}
           </div>
         </div>
       )}

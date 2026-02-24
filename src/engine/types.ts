@@ -79,6 +79,10 @@ export interface GameState {
   noPlayDeclaration?: NoPlayDeclaration;
   pendingPlay?: PendingPlay;
   prophetsCorrectCount: number;
+  prophetMarkerIndex?: number;
+  prophetHandAside?: Card[];
+  prophetCorrectCalls: number;
+  prophetIncorrectCalls: number;
   roundNumber: number;
   gameStartTime: number;
 }
@@ -92,7 +96,8 @@ export type GameAction =
   | { type: 'DECLARE_PROPHET'; playerId: string }
   | { type: 'RESIGN_PROPHET'; playerId: string }
   | { type: 'PROPHET_PREDICT'; playerId: string; cardId: string; prediction: boolean }
-  | { type: 'PROPHET_VERIFY'; cardId: string; dealerJudgment: boolean }
+  | { type: 'PROPHET_VERIFY'; prediction: boolean; dealerJudgment: boolean; cardId: string }
+  | { type: 'OVERTHROW_PROPHET'; prophetId: string }
   | { type: 'DECLARE_NO_PLAY'; playerId: string }
   | { type: 'DISPUTE_NO_PLAY'; disputerId: string }
   | { type: 'RESOLVE_NO_PLAY'; valid: boolean }

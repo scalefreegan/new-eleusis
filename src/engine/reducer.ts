@@ -20,6 +20,10 @@ export function createInitialState(): GameState {
     dealerRule: '',
     pendingPlay: undefined,
     prophetsCorrectCount: 0,
+    prophetMarkerIndex: undefined,
+    prophetHandAside: undefined,
+    prophetCorrectCalls: 0,
+    prophetIncorrectCalls: 0,
     roundNumber: 0,
     gameStartTime: Date.now(),
   };
@@ -237,9 +241,14 @@ function judgeCard(state: GameState, action: { type: 'JUDGE_CARD'; cardId: strin
  * Declare a player as Prophet
  */
 function declareProphet(state: GameState, action: { type: 'DECLARE_PROPHET'; playerId: string }): GameState {
+  const player = state.players.find(p => p.id === action.playerId);
+  if (!player) {
+    return state;
+  }
+
   const updatedPlayers = state.players.map(p => {
     if (p.id === action.playerId) {
-      return { ...p, isProphet: true };
+      return { ...p, isProphet: true, hand: [] };
     }
     return p;
   });
@@ -247,6 +256,10 @@ function declareProphet(state: GameState, action: { type: 'DECLARE_PROPHET'; pla
   return {
     ...state,
     players: updatedPlayers,
+    prophetMarkerIndex: state.mainLine.length - 1,
+    prophetHandAside: [...player.hand],
+    prophetCorrectCalls: 0,
+    prophetIncorrectCalls: 0,
   };
 }
 
@@ -310,18 +323,46 @@ function prophetPredict(state: GameState, action: { type: 'PROPHET_PREDICT'; pla
 /**
  * Verify prophet's prediction
  */
-function prophetVerify(state: GameState, action: { type: 'PROPHET_VERIFY'; cardId: string; dealerJudgment: boolean }): GameState {
-  const card = state.mainLine.find(pc => pc.id === action.cardId);
-  if (!card || !card.prophetPrediction) {
-    return state;
-  }
-
-  const predictionCorrect = card.prophetPrediction.prediction === action.dealerJudgment;
-  const newProphetsCorrectCount = predictionCorrect ? state.prophetsCorrectCount + 1 : 0;
+function prophetVerify(state: GameState, action: { type: 'PROPHET_VERIFY'; prediction: boolean; dealerJudgment: boolean; cardId: string }): GameState {
+  const predictionCorrect = action.prediction === action.dealerJudgment;
 
   return {
     ...state,
-    prophetsCorrectCount: newProphetsCorrectCount,
+    prophetCorrectCalls: predictionCorrect ? state.prophetCorrectCalls + 1 : state.prophetCorrectCalls,
+    prophetIncorrectCalls: predictionCorrect ? state.prophetIncorrectCalls : state.prophetIncorrectCalls + 1,
+  };
+}
+
+/**
+ * Overthrow the Prophet (wrong prediction)
+ */
+function overthrowProphet(state: GameState, action: { type: 'OVERTHROW_PROPHET'; prophetId: string }): GameState {
+  const prophet = state.players.find(p => p.id === action.prophetId);
+  if (!prophet || !state.prophetHandAside) {
+    return state;
+  }
+
+  // Deal 5 penalty cards from deck
+  const { dealt: penaltyCards, remaining: remainingDeck } = dealCards(state.deck, 5);
+
+  // Restore hand with penalty cards
+  const restoredHand = [...state.prophetHandAside, ...penaltyCards];
+
+  const updatedPlayers = state.players.map(p => {
+    if (p.id === action.prophetId) {
+      return { ...p, isProphet: false, hand: restoredHand };
+    }
+    return p;
+  });
+
+  return {
+    ...state,
+    players: updatedPlayers,
+    deck: remainingDeck,
+    prophetMarkerIndex: undefined,
+    prophetHandAside: undefined,
+    prophetCorrectCalls: 0,
+    prophetIncorrectCalls: 0,
   };
 }
 
@@ -473,13 +514,14 @@ function endTurn(state: GameState): GameState {
     });
   }
 
-  // Find next non-expelled, non-dealer player
+  // Find next non-expelled, non-dealer, non-prophet player
   let nextPlayerIndex = (updatedState.currentPlayerIndex + 1) % updatedState.players.length;
   let iterations = 0;
   while (
     iterations < updatedState.players.length &&
     (updatedState.players[nextPlayerIndex].isExpelled ||
-      updatedState.players[nextPlayerIndex].isDealer)
+      updatedState.players[nextPlayerIndex].isDealer ||
+      updatedState.players[nextPlayerIndex].isProphet)
   ) {
     nextPlayerIndex = (nextPlayerIndex + 1) % updatedState.players.length;
     iterations++;
@@ -533,6 +575,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return prophetPredict(state, action);
     case 'PROPHET_VERIFY':
       return prophetVerify(state, action);
+    case 'OVERTHROW_PROPHET':
+      return overthrowProphet(state, action);
     case 'DECLARE_NO_PLAY':
       return declareNoPlay(state, action);
     case 'DISPUTE_NO_PLAY':

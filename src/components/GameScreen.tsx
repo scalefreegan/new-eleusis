@@ -174,7 +174,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
                   marginTop: '0.25rem',
                 }}
               >
-                👑 Prophet Predictions: {state.prophetsCorrectCount}/3
+                👑 Prophet: {state.prophetCorrectCalls} correct call{state.prophetCorrectCalls !== 1 ? 's' : ''}
               </p>
             )}
           </div>
@@ -230,8 +230,31 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
 
         {/* MainLine Board Area - Maximized */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <MainLineBoard mainLine={state.mainLine} />
+          <MainLineBoard mainLine={state.mainLine} prophetMarkerIndex={state.prophetMarkerIndex} />
         </div>
+
+        {/* Prophet Status Bar (when not predicting) */}
+        {prophetPlayer && !showProphetPanel && state.phase !== 'game_over' && (
+          <div
+            style={{
+              padding: '1rem',
+              background: 'rgba(138, 43, 226, 0.5)',
+              border: '2px solid var(--accent-gold)',
+              borderRadius: '8px',
+              textAlign: 'center',
+              fontSize: '0.6rem',
+              color: 'var(--text-light)',
+              marginBottom: '1rem',
+            }}
+          >
+            <span style={{ color: 'var(--accent-gold)', fontWeight: 'bold' }}>👑 You are the Prophet.</span>
+            {' '}Watch other players' plays and call them right or wrong.
+            {' '}
+            <span style={{ color: 'var(--text-dim)' }}>
+              (Correct calls: {state.prophetCorrectCalls})
+            </span>
+          </div>
+        )}
 
         {/* Bottom Section - Player Hand (Full Width) */}
         {activePlayer && (

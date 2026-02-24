@@ -123,7 +123,7 @@ export function ProphetPredictionPanel({
               color: 'var(--text-dim)',
             }}
           >
-            Correct Predictions: {state.prophetsCorrectCount}/3
+            Correct Calls: {state.prophetCorrectCalls}
           </div>
         </div>
       </GlassPanel>

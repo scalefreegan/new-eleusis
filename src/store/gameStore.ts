@@ -115,7 +115,7 @@ export const useGameStore = create<GameStore>()(
       }
     }
 
-    // After PROPHET_PREDICT with AI dealer, auto-judge the predicted card
+    // After PROPHET_PREDICT with AI dealer, compare prediction to dealer judgment
     if (action.type === 'PROPHET_PREDICT' && newState.pendingPlay) {
       const { aiDealer } = get();
       if (aiDealer && newState.mainLine.length > 0) {
@@ -127,21 +127,56 @@ export const useGameStore = create<GameStore>()(
               const pendingCard = currentState.pendingPlay.cards.find(c => c.id === action.cardId);
               if (pendingCard) {
                 const lastCard = currentState.mainLine[currentState.mainLine.length - 1];
-                const isCorrect = aiDealer.judgeCard(lastCard, pendingCard);
+                const dealerJudgment = aiDealer.judgeCard(lastCard, pendingCard);
+                const prophetPrediction = action.prediction;
+                const prophetPlayer = currentState.players.find(p => p.isProphet && !p.isDealer);
 
-                setTimeout(() => {
-                  if (isCorrect) {
-                    sounds.playCorrect();
-                  } else {
-                    sounds.playWrong();
+                // Check if Prophet's prediction matches dealer's judgment
+                const approved = prophetPrediction === dealerJudgment;
+
+                if (approved) {
+                  // Prophet was correct - proceed normally
+                  get().dispatch({
+                    type: 'PROPHET_VERIFY',
+                    prediction: prophetPrediction,
+                    dealerJudgment,
+                    cardId: action.cardId,
+                  });
+
+                  setTimeout(() => {
+                    if (dealerJudgment) {
+                      sounds.playCorrect();
+                    } else {
+                      sounds.playWrong();
+                    }
+                  }, 150);
+
+                  get().dispatch({
+                    type: 'JUDGE_CARD',
+                    cardId: action.cardId,
+                    correct: dealerJudgment,
+                  });
+                } else {
+                  // Prophet was wrong - overthrow them
+                  if (prophetPlayer) {
+                    get().dispatch({
+                      type: 'OVERTHROW_PROPHET',
+                      prophetId: prophetPlayer.id,
+                    });
                   }
-                }, 150);
 
-                get().dispatch({
-                  type: 'JUDGE_CARD',
-                  cardId: action.cardId,
-                  correct: isCorrect,
-                });
+                  // Still judge the card with the actual result (no penalty to player)
+                  setTimeout(() => {
+                    // Play a distinctive overthrow sound (using wrong sound for now)
+                    sounds.playWrong();
+                  }, 150);
+
+                  get().dispatch({
+                    type: 'JUDGE_CARD',
+                    cardId: action.cardId,
+                    correct: dealerJudgment,
+                  });
+                }
               }
             }
           }, 600);
