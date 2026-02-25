@@ -82,7 +82,7 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
               </h2>
               <ul style={{ paddingLeft: '1.5rem', marginBottom: '0.75rem' }}>
                 <li style={{ marginBottom: '0.5rem' }}>
-                  On your turn, select one or more cards and click "Play Cards"
+                  On your turn, select one or more cards (up to 4) and click "Play Cards"
                 </li>
                 <li style={{ marginBottom: '0.5rem' }}>
                   Cards that follow the rule are added to the main line (correct)
@@ -91,7 +91,30 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
                   Cards that break the rule branch off as incorrect
                 </li>
                 <li style={{ marginBottom: '0.5rem' }}>
-                  If you can't play any cards, declare "No Play"
+                  <span style={{ color: '#dc143c' }}>Wrong play penalty:</span> Each incorrect card earns you <span style={{ color: '#dc143c' }}>2 penalty cards</span> from the deck
+                </li>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  Playing a sequence: If you play multiple cards, each is judged in order
+                </li>
+              </ul>
+            </section>
+
+            <section style={{ marginBottom: '2rem' }}>
+              <h2 style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                🚫 NO PLAY
+              </h2>
+              <p style={{ marginBottom: '0.75rem' }}>
+                If you believe none of your cards can follow the rule:
+              </p>
+              <ul style={{ paddingLeft: '1.5rem', marginBottom: '0.75rem' }}>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--accent-gold)' }}>Valid no-play:</span> Discard your entire hand, draw a new hand with 4 fewer cards
+                </li>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  <span style={{ color: '#dc143c' }}>Invalid no-play:</span> God finds a correct card, plays it for you, and you draw <span style={{ color: '#dc143c' }}>5 penalty cards</span>
+                </li>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  If your new hand is empty, you're out but can win on scoring!
                 </li>
               </ul>
             </section>
@@ -105,13 +128,16 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
               </p>
               <ul style={{ paddingLeft: '1.5rem', marginBottom: '0.75rem' }}>
                 <li style={{ marginBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--accent-gold)' }}>Eligibility:</span> No existing Prophet, you haven't been Prophet before, at least 2 other active players
+                </li>
+                <li style={{ marginBottom: '0.5rem' }}>
                   Predict whether other players' cards will be correct or wrong
                 </li>
                 <li style={{ marginBottom: '0.5rem' }}>
-                  Get 3 predictions right to overthrow the Dealer and win!
+                  Wrong predictions overthrow you (5 penalty cards + your old hand back)
                 </li>
                 <li style={{ marginBottom: '0.5rem' }}>
-                  Wrong predictions cost you points
+                  Stay Prophet until game end for big score bonus!
                 </li>
               </ul>
             </section>
@@ -120,21 +146,18 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
               <h2 style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', marginBottom: '1rem' }}>
                 📊 SCORING
               </h2>
+              <p style={{ marginBottom: '0.75rem', fontStyle: 'italic' }}>
+                Score = (highest hand count - your hand count) + bonuses
+              </p>
               <ul style={{ paddingLeft: '1.5rem', marginBottom: '0.75rem' }}>
                 <li style={{ marginBottom: '0.5rem' }}>
-                  <span style={{ color: 'var(--accent-gold)' }}>+1</span> point for each correct card
+                  <span style={{ color: 'var(--accent-gold)' }}>+4 bonus</span> if your hand is empty at game end
                 </li>
                 <li style={{ marginBottom: '0.5rem' }}>
-                  <span style={{ color: '#dc143c' }}>-1</span> point for each wrong card
+                  <span style={{ color: 'var(--accent-gold)' }}>Prophet bonus:</span> +1 per correct card played after your marker, +2 per wrong card (if still Prophet at end)
                 </li>
                 <li style={{ marginBottom: '0.5rem' }}>
-                  <span style={{ color: 'var(--accent-gold)' }}>+5</span> for correct Prophet predictions
-                </li>
-                <li style={{ marginBottom: '0.5rem' }}>
-                  <span style={{ color: '#dc143c' }}>-5</span> for wrong Prophet predictions
-                </li>
-                <li style={{ marginBottom: '0.5rem' }}>
-                  Penalty for having 25+ cards in hand
+                  <span style={{ color: 'var(--accent-purple)' }}>God score:</span> min(highest player score, 2 × cards before Prophet marker)
                 </li>
               </ul>
             </section>
@@ -143,25 +166,41 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
               <h2 style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', marginBottom: '1rem' }}>
                 ⚡ SUDDEN DEATH
               </h2>
-              <p style={{ marginBottom: '0.75rem' }}>
-                If you reach 25 cards in your hand, you get a Sudden Death marker (💀).
-                Get 2 markers and you're expelled from the game!
-              </p>
+              <ul style={{ paddingLeft: '1.5rem', marginBottom: '0.75rem' }}>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  White markers (○) appear every 10 cards played
+                </li>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  Black markers (●) appear every 10 cards after Prophet marker
+                </li>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  <span style={{ color: '#dc143c' }}>Sudden Death starts:</span> at 40 cards total, or 30 cards after Prophet marker
+                </li>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  During Sudden Death: any wrong play = immediate expulsion!
+                </li>
+              </ul>
             </section>
 
             <section>
               <h2 style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-                🏆 WINNING
+                🏆 GAME END
               </h2>
+              <p style={{ marginBottom: '0.75rem' }}>
+                The round ends when:
+              </p>
               <ul style={{ paddingLeft: '1.5rem' }}>
                 <li style={{ marginBottom: '0.5rem' }}>
-                  The game ends when the deck runs out
+                  Any player runs out of cards
                 </li>
                 <li style={{ marginBottom: '0.5rem' }}>
-                  Or when the Prophet gets 3 correct predictions
+                  All non-God players are expelled
                 </li>
                 <li style={{ marginBottom: '0.5rem' }}>
-                  Highest score wins!
+                  The deck is empty
+                </li>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  Highest score wins! True Prophet (still Prophet at end) becomes next God.
                 </li>
               </ul>
             </section>

@@ -21,7 +21,7 @@ export interface Player {
   isProphet: boolean;
   isGod: boolean;
   type: PlayerType;
-  suddenDeathMarkers: number;
+  wasProphet: boolean;
   isExpelled: boolean;
 }
 
@@ -85,6 +85,7 @@ export interface GameState {
   prophetIncorrectCalls: number;
   roundNumber: number;
   gameStartTime: number;
+  totalCardsPlayed: number;
 }
 
 export type GameAction =
@@ -100,8 +101,7 @@ export type GameAction =
   | { type: 'OVERTHROW_PROPHET'; prophetId: string }
   | { type: 'DECLARE_NO_PLAY'; playerId: string }
   | { type: 'DISPUTE_NO_PLAY'; disputerId: string }
-  | { type: 'RESOLVE_NO_PLAY'; valid: boolean }
-  | { type: 'ADD_SUDDEN_DEATH_MARKER'; playerId: string }
+  | { type: 'RESOLVE_NO_PLAY'; valid: boolean; correctCardId?: string }
   | { type: 'EXPEL_PLAYER'; playerId: string }
   | { type: 'END_TURN' }
   | { type: 'END_GAME' };

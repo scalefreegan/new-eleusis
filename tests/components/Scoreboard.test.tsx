@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Scoreboard } from '../../src/components/Scoreboard';
-import type { Player } from '../../src/engine/types';
+import type { Player, GameState } from '../../src/engine/types';
 
 describe('Scoreboard', () => {
   const createMockPlayer = (overrides: Partial<Player> = {}): Player => ({
@@ -11,11 +11,26 @@ describe('Scoreboard', () => {
     hand: [],
     score: 0,
     isProphet: false,
-    isDealer: false,
+    isGod: false,
     type: 'human',
-    suddenDeathMarkers: 0,
+    wasProphet: false,
     isExpelled: false,
     ...overrides,
+  });
+
+  const createMockGameState = (players: Player[]): GameState => ({
+    phase: 'playing',
+    players,
+    currentPlayerIndex: 0,
+    deck: [],
+    mainLine: [],
+    godRule: 'test',
+    prophetsCorrectCount: 0,
+    prophetCorrectCalls: 0,
+    prophetIncorrectCalls: 0,
+    totalCardsPlayed: 0,
+    roundNumber: 1,
+    gameStartTime: Date.now(),
   });
 
   it('renders all players', () => {
@@ -24,8 +39,9 @@ describe('Scoreboard', () => {
       createMockPlayer({ id: '2', name: 'Bob', type: 'ai' }),
       createMockPlayer({ id: '3', name: 'Charlie' }),
     ];
+    const gameState = createMockGameState(players);
 
-    render(<Scoreboard players={players} currentPlayerIndex={0} />);
+    render(<Scoreboard players={players} currentPlayerIndex={0} gameState={gameState} />);
 
     expect(screen.getByText('Alice')).toBeInTheDocument();
     expect(screen.getByText('Bob')).toBeInTheDocument();
@@ -37,8 +53,9 @@ describe('Scoreboard', () => {
       createMockPlayer({ id: '1', name: 'Alice' }),
       createMockPlayer({ id: '2', name: 'Bob' }),
     ];
+    const gameState = createMockGameState(players);
 
-    const { container } = render(<Scoreboard players={players} currentPlayerIndex={1} />);
+    const { container } = render(<Scoreboard players={players} currentPlayerIndex={1} gameState={gameState} />);
 
     // The second player (Bob) should have the highlighted styles
     const playerDivs = container.querySelectorAll('[style*="background"]');
@@ -49,8 +66,9 @@ describe('Scoreboard', () => {
     const players: Player[] = [
       createMockPlayer({ id: '1', name: 'Alice', isProphet: true }),
     ];
+    const gameState = createMockGameState(players);
 
-    const { container } = render(<Scoreboard players={players} currentPlayerIndex={0} />);
+    const { container } = render(<Scoreboard players={players} currentPlayerIndex={0} gameState={gameState} />);
 
     expect(container.textContent).toContain('👑');
   });
@@ -59,8 +77,9 @@ describe('Scoreboard', () => {
     const players: Player[] = [
       createMockPlayer({ id: '1', name: 'Bot', type: 'ai' }),
     ];
+    const gameState = createMockGameState(players);
 
-    render(<Scoreboard players={players} currentPlayerIndex={0} />);
+    render(<Scoreboard players={players} currentPlayerIndex={0} gameState={gameState} />);
 
     expect(screen.getByText('AI')).toBeInTheDocument();
   });
@@ -69,8 +88,9 @@ describe('Scoreboard', () => {
     const players: Player[] = [
       createMockPlayer({ id: '1', name: 'Alice', isExpelled: true }),
     ];
+    const gameState = createMockGameState(players);
 
-    const { container } = render(<Scoreboard players={players} currentPlayerIndex={0} />);
+    const { container } = render(<Scoreboard players={players} currentPlayerIndex={0} gameState={gameState} />);
 
     expect(container.textContent).toContain('⛔');
   });
@@ -83,51 +103,23 @@ describe('Scoreboard', () => {
     }));
 
     const players: Player[] = [
-      createMockPlayer({ id: '1', name: 'Alice', score: 42, hand }),
+      createMockPlayer({ id: '1', name: 'Alice', hand }),
     ];
+    const gameState = createMockGameState(players);
 
-    const { container } = render(<Scoreboard players={players} currentPlayerIndex={0} />);
+    const { container } = render(<Scoreboard players={players} currentPlayerIndex={0} gameState={gameState} />);
 
-    expect(container.textContent).toContain('42');
-    expect(container.textContent).toContain('5');
-  });
-
-  it('displays warning icons for high card counts', () => {
-    const createHand = (count: number) =>
-      Array(count).fill(null).map((_, i) => ({
-        id: `card-${i}`,
-        suit: 'hearts' as const,
-        rank: 'A' as const,
-      }));
-
-    const players20: Player[] = [
-      createMockPlayer({ id: '1', name: 'Alice', hand: createHand(20) }),
-    ];
-    const { container: container20 } = render(<Scoreboard players={players20} currentPlayerIndex={0} />);
-    expect(container20.textContent).toContain('⚠️');
-
-    const players25: Player[] = [
-      createMockPlayer({ id: '1', name: 'Bob', hand: createHand(25) }),
-    ];
-    const { container: container25 } = render(<Scoreboard players={players25} currentPlayerIndex={0} />);
-    expect(container25.textContent).toContain('💀');
-  });
-
-  it('displays sudden death markers', () => {
-    const players: Player[] = [
-      createMockPlayer({ id: '1', name: 'Alice', suddenDeathMarkers: 2 }),
-    ];
-
-    const { container } = render(<Scoreboard players={players} currentPlayerIndex={0} />);
-
-    expect(container.textContent).toContain('💀');
-    expect(container.textContent).toContain('2 Markers');
+    // Score is calculated live, not from player.score field
+    // With 5 cards in hand, score would be: highCount (5) - hand (5) = 0
+    expect(container.textContent).toContain('Scr: 0');
+    expect(container.textContent).toContain('Cds: 5');
   });
 
   it('renders title', () => {
     const players: Player[] = [createMockPlayer()];
+    const gameState = createMockGameState(players);
 
-    render(<Scoreboard players={players} currentPlayerIndex={0} />);
+    render(<Scoreboard players={players} currentPlayerIndex={0} gameState={gameState} />);
 
     expect(screen.getByText('Players')).toBeInTheDocument();
   });

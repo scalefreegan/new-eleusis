@@ -150,36 +150,13 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
                     style={{
                       color: isExpelled
                         ? 'var(--text-dim)'
-                        : player.hand.length >= 25
-                        ? '#dc143c'
-                        : player.hand.length >= 20
-                        ? '#ffa500'
                         : 'var(--text-light)',
                     }}
                   >
                     {player.hand.length}
-                    {!isExpelled && player.hand.length >= 25 && ' 💀'}
-                    {!isExpelled && player.hand.length >= 20 && player.hand.length < 25 && ' ⚠️'}
                   </span>
                 </div>
               </div>
-
-              {/* Sudden Death Markers */}
-              {player.suddenDeathMarkers > 0 && (
-                <div
-                  style={{
-                    fontSize: '0.6rem',
-                    marginTop: '0.5rem',
-                    padding: '0.25rem 0.5rem',
-                    background: 'rgba(220, 20, 60, 0.2)',
-                    border: '1px solid rgba(220, 20, 60, 0.5)',
-                    borderRadius: '4px',
-                    color: '#dc143c',
-                  }}
-                >
-                  💀 {player.suddenDeathMarkers} Marker{player.suddenDeathMarkers !== 1 ? 's' : ''}
-                </div>
-              )}
             </motion.div>
           );
         })}

@@ -4,8 +4,8 @@
  */
 
 import type { GameState, GameAction, Player, PlayedCard, Card, GamePhase } from './types';
-import { createDeck, shuffle, dealCards } from './deck';
-import { shouldGameEnd, shouldReceiveSuddenDeathMarker, shouldBeExpelled } from './validation';
+import { createDeck, shuffle, dealCards, getRankValue } from './deck';
+import { shouldGameEnd, isSuddenDeath } from './validation';
 
 /**
  * Create initial game state
@@ -26,6 +26,7 @@ export function createInitialState(): GameState {
     prophetIncorrectCalls: 0,
     roundNumber: 0,
     gameStartTime: Date.now(),
+    totalCardsPlayed: 0,
   };
 }
 
@@ -42,7 +43,7 @@ function initGame(state: GameState, action: { type: 'INIT_GAME'; godId: string; 
     isProphet: false,
     isGod: id === action.godId,
     type: 'ai',
-    suddenDeathMarkers: 0,
+    wasProphet: false,
     isExpelled: false,
   }));
 
@@ -60,6 +61,7 @@ function initGame(state: GameState, action: { type: 'INIT_GAME'; godId: string; 
     prophetsCorrectCount: 0,
     roundNumber: 1,
     gameStartTime: Date.now(),
+    totalCardsPlayed: 0,
   };
 }
 
@@ -81,7 +83,7 @@ function dealCardsToPlayers(state: GameState, action: { type: 'DEAL_CARDS'; coun
   let remainingDeck = [...state.deck];
   const updatedPlayers = state.players.map(player => {
     if (player.isGod) {
-      return player;
+      return { ...player, wasProphet: false };
     }
 
     const { dealt, remaining } = dealCards(remainingDeck, action.count);
@@ -90,11 +92,13 @@ function dealCardsToPlayers(state: GameState, action: { type: 'DEAL_CARDS'; coun
     return {
       ...player,
       hand: [...player.hand, ...dealt],
+      wasProphet: false,
     };
   });
 
   // Deal starter card to main line if empty
   let mainLine = [...state.mainLine];
+  let startPlayerIndex = 1;
   if (mainLine.length === 0 && remainingDeck.length > 0) {
     const starterCard = remainingDeck[0];
     remainingDeck = remainingDeck.slice(1);
@@ -103,6 +107,25 @@ function dealCardsToPlayers(state: GameState, action: { type: 'DEAL_CARDS'; coun
       correct: true,
       playedBy: 'god',
     }];
+
+    // Calculate start player based on starter card rank
+    const rankValue = getRankValue(starterCard.rank);
+    const nonGodPlayers = updatedPlayers.filter(p => !p.isGod);
+    if (nonGodPlayers.length > 0) {
+      // Count that many positions clockwise among non-God players starting from player index 1 (left of God)
+      const startOffset = (rankValue - 1) % nonGodPlayers.length;
+      // Find the actual player index
+      let count = 0;
+      for (let i = 0; i < updatedPlayers.length; i++) {
+        if (!updatedPlayers[i].isGod) {
+          if (count === startOffset) {
+            startPlayerIndex = i;
+            break;
+          }
+          count++;
+        }
+      }
+    }
   }
 
   return {
@@ -111,7 +134,7 @@ function dealCardsToPlayers(state: GameState, action: { type: 'DEAL_CARDS'; coun
     deck: remainingDeck,
     mainLine,
     phase: 'playing',
-    currentPlayerIndex: 1, // Start on first scientist, not dealer
+    currentPlayerIndex: startPlayerIndex,
   };
 }
 
@@ -191,6 +214,9 @@ function judgeCard(state: GameState, action: { type: 'JUDGE_CARD'; cardId: strin
 
   // Add to main line or branch immutably
   let updatedMainLine = [...state.mainLine];
+  let remainingDeck = [...state.deck];
+  let updatedPlayers = [...state.players];
+
   if (action.correct) {
     updatedMainLine.push(playedCard);
   } else {
@@ -207,6 +233,30 @@ function judgeCard(state: GameState, action: { type: 'JUDGE_CARD'; cardId: strin
         updatedLastCard,
       ];
     }
+
+    // Deal 2 penalty cards to the player
+    const { dealt: penaltyCards, remaining } = dealCards(remainingDeck, 2);
+    remainingDeck = remaining;
+
+    updatedPlayers = updatedPlayers.map(p => {
+      if (p.id === state.pendingPlay!.playerId) {
+        return { ...p, hand: [...p.hand, ...penaltyCards] };
+      }
+      return p;
+    });
+  }
+
+  // Increment totalCardsPlayed
+  const totalCardsPlayed = state.totalCardsPlayed + 1;
+
+  // Check if player should be expelled (sudden death + wrong play)
+  if (!action.correct && isSuddenDeath({ ...state, totalCardsPlayed })) {
+    updatedPlayers = updatedPlayers.map(p => {
+      if (p.id === state.pendingPlay!.playerId) {
+        return { ...p, isExpelled: true };
+      }
+      return p;
+    });
   }
 
   // Remove this card from pending cards
@@ -217,18 +267,34 @@ function judgeCard(state: GameState, action: { type: 'JUDGE_CARD'; cardId: strin
 
   // If all cards are judged, clear pendingPlay and return to 'playing'
   if (remainingCards.length === 0) {
-    return {
+    const newState = {
       ...state,
       mainLine: updatedMainLine,
+      deck: remainingDeck,
+      players: updatedPlayers,
+      totalCardsPlayed,
       pendingPlay: undefined,
-      phase: 'playing',
+      phase: 'playing' as GamePhase,
     };
+
+    // Check if game should end
+    if (shouldGameEnd(newState)) {
+      return {
+        ...newState,
+        phase: 'game_over',
+      };
+    }
+
+    return newState;
   }
 
   // Otherwise, update pendingPlay with remaining cards
   return {
     ...state,
     mainLine: updatedMainLine,
+    deck: remainingDeck,
+    players: updatedPlayers,
+    totalCardsPlayed,
     pendingPlay: {
       ...state.pendingPlay,
       cards: remainingCards,
@@ -269,7 +335,7 @@ function declareProphet(state: GameState, action: { type: 'DECLARE_PROPHET'; pla
 function resignProphet(state: GameState, action: { type: 'RESIGN_PROPHET'; playerId: string }): GameState {
   const updatedPlayers = state.players.map(p => {
     if (p.id === action.playerId) {
-      return { ...p, isProphet: false };
+      return { ...p, isProphet: false, wasProphet: true };
     }
     return p;
   });
@@ -350,7 +416,7 @@ function overthrowProphet(state: GameState, action: { type: 'OVERTHROW_PROPHET';
 
   const updatedPlayers = state.players.map(p => {
     if (p.id === action.prophetId) {
-      return { ...p, isProphet: false, hand: restoredHand };
+      return { ...p, isProphet: false, wasProphet: true, hand: restoredHand };
     }
     return p;
   });
@@ -407,7 +473,7 @@ function disputeNoPlay(state: GameState, action: { type: 'DISPUTE_NO_PLAY'; disp
 /**
  * Resolve "No Play" declaration
  */
-function resolveNoPlay(state: GameState, action: { type: 'RESOLVE_NO_PLAY'; valid: boolean }): GameState {
+function resolveNoPlay(state: GameState, action: { type: 'RESOLVE_NO_PLAY'; valid: boolean; correctCardId?: string }): GameState {
   if (!state.noPlayDeclaration) {
     return state;
   }
@@ -424,62 +490,83 @@ function resolveNoPlay(state: GameState, action: { type: 'RESOLVE_NO_PLAY'; vali
   }
 
   let updatedPlayers = [...state.players];
+  let updatedDeck = [...state.deck];
+  let updatedMainLine = [...state.mainLine];
 
   if (action.valid) {
-    // Valid no-play: player draws a card
-    const { dealt, remaining } = dealCards(state.deck, 1);
+    // Valid no-play: discard entire hand, deal new hand with 4 fewer cards
+    const oldHandSize = player.hand.length;
+    const newHandSize = Math.max(0, oldHandSize - 4);
+
+    const { dealt, remaining } = dealCards(updatedDeck, newHandSize);
+    updatedDeck = remaining;
+
     updatedPlayers = updatedPlayers.map(p => {
       if (p.id === declaration.playerId) {
-        return { ...p, hand: [...p.hand, ...dealt] };
+        return { ...p, hand: dealt };
       }
       return p;
     });
 
-    return {
+    const newState = {
       ...state,
-      deck: remaining,
+      deck: updatedDeck,
       players: updatedPlayers,
-      phase: 'playing',
+      phase: 'playing' as GamePhase,
       noPlayDeclaration: undefined,
     };
+
+    // Check if game should end (player may have empty hand now)
+    if (shouldGameEnd(newState)) {
+      return {
+        ...newState,
+        phase: 'game_over',
+      };
+    }
+
+    return newState;
   } else {
-    // Invalid no-play: player receives penalty
+    // Invalid no-play: play the correct card + 5 penalty cards
+    if (!action.correctCardId) {
+      return state;
+    }
+
+    const correctCard = player.hand.find(c => c.id === action.correctCardId);
+    if (!correctCard) {
+      return state;
+    }
+
+    // Play the correct card on the mainline
+    const playedCard: PlayedCard = {
+      ...correctCard,
+      correct: true,
+      playedBy: declaration.playerId,
+    };
+    updatedMainLine.push(playedCard);
+
+    // Deal 5 penalty cards
+    const { dealt: penaltyCards, remaining } = dealCards(updatedDeck, 5);
+    updatedDeck = remaining;
+
+    // Update player's hand: remove correct card, add penalty cards
     updatedPlayers = updatedPlayers.map(p => {
       if (p.id === declaration.playerId) {
-        return { ...p, score: p.score - 5 };
+        const newHand = p.hand.filter(c => c.id !== action.correctCardId);
+        return { ...p, hand: [...newHand, ...penaltyCards] };
       }
       return p;
     });
 
     return {
       ...state,
+      deck: updatedDeck,
       players: updatedPlayers,
+      mainLine: updatedMainLine,
+      totalCardsPlayed: state.totalCardsPlayed + 1,
       phase: 'playing',
       noPlayDeclaration: undefined,
     };
   }
-}
-
-/**
- * Add sudden death marker to a player
- */
-function addSuddenDeathMarker(state: GameState, action: { type: 'ADD_SUDDEN_DEATH_MARKER'; playerId: string }): GameState {
-  const updatedPlayers = state.players.map(p => {
-    if (p.id === action.playerId) {
-      const newMarkers = p.suddenDeathMarkers + 1;
-      return {
-        ...p,
-        suddenDeathMarkers: newMarkers,
-        isExpelled: shouldBeExpelled({ ...p, suddenDeathMarkers: newMarkers }),
-      };
-    }
-    return p;
-  });
-
-  return {
-    ...state,
-    players: updatedPlayers,
-  };
 }
 
 /**
@@ -503,42 +590,31 @@ function expelPlayer(state: GameState, action: { type: 'EXPEL_PLAYER'; playerId:
  * End the current turn and advance to next player
  */
 function endTurn(state: GameState): GameState {
-  // Check for sudden death markers
-  const currentPlayer = state.players[state.currentPlayerIndex];
-  let updatedState = { ...state };
-
-  if (shouldReceiveSuddenDeathMarker(currentPlayer)) {
-    updatedState = addSuddenDeathMarker(updatedState, {
-      type: 'ADD_SUDDEN_DEATH_MARKER',
-      playerId: currentPlayer.id,
-    });
-  }
-
-  // Find next non-expelled, non-dealer, non-prophet player
-  let nextPlayerIndex = (updatedState.currentPlayerIndex + 1) % updatedState.players.length;
+  // Find next non-expelled, non-god, non-prophet player
+  let nextPlayerIndex = (state.currentPlayerIndex + 1) % state.players.length;
   let iterations = 0;
   while (
-    iterations < updatedState.players.length &&
-    (updatedState.players[nextPlayerIndex].isExpelled ||
-      updatedState.players[nextPlayerIndex].isGod ||
-      updatedState.players[nextPlayerIndex].isProphet)
+    iterations < state.players.length &&
+    (state.players[nextPlayerIndex].isExpelled ||
+      state.players[nextPlayerIndex].isGod ||
+      state.players[nextPlayerIndex].isProphet)
   ) {
-    nextPlayerIndex = (nextPlayerIndex + 1) % updatedState.players.length;
+    nextPlayerIndex = (nextPlayerIndex + 1) % state.players.length;
     iterations++;
   }
 
   // Check if game should end
-  if (shouldGameEnd(updatedState)) {
+  if (shouldGameEnd(state)) {
     return {
-      ...updatedState,
+      ...state,
       phase: 'game_over',
     };
   }
 
   return {
-    ...updatedState,
+    ...state,
     currentPlayerIndex: nextPlayerIndex,
-    roundNumber: updatedState.roundNumber + 1,
+    roundNumber: state.roundNumber + 1,
   };
 }
 
@@ -583,8 +659,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return disputeNoPlay(state, action);
     case 'RESOLVE_NO_PLAY':
       return resolveNoPlay(state, action);
-    case 'ADD_SUDDEN_DEATH_MARKER':
-      return addSuddenDeathMarker(state, action);
     case 'EXPEL_PLAYER':
       return expelPlayer(state, action);
     case 'END_TURN':

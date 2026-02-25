@@ -205,6 +205,30 @@ export const useGameStore = create<GameStore>()(
       }
     }
 
+    // After RESOLVE_NO_PLAY with AI God, auto-find correct card for invalid no-play
+    if (action.type === 'RESOLVE_NO_PLAY' && !action.valid && !action.correctCardId) {
+      const { aiGod } = get();
+      if (aiGod && previousState.noPlayDeclaration && previousState.mainLine.length > 0) {
+        const player = previousState.players.find(p => p.id === previousState.noPlayDeclaration!.playerId);
+        if (player) {
+          const lastCard = previousState.mainLine[previousState.mainLine.length - 1];
+          // Find a correct card in player's hand
+          const correctCard = player.hand.find(card => aiGod.judgeCard(lastCard, card));
+          if (correctCard) {
+            // Re-dispatch with correct card ID
+            setTimeout(() => {
+              get().dispatch({
+                type: 'RESOLVE_NO_PLAY',
+                valid: false,
+                correctCardId: correctCard.id,
+              });
+            }, 100);
+            return;
+          }
+        }
+      }
+    }
+
     // After JUDGE_CARD clears pendingPlay, auto-dispatch END_TURN
     if (action.type === 'JUDGE_CARD') {
       const currentPlayer = newState.players[newState.currentPlayerIndex];

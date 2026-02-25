@@ -20,6 +20,7 @@ interface PlayerHandProps {
   isProphet?: boolean;
   isHumanTurn?: boolean;
   gamePhase?: string;
+  canDeclareProphet?: boolean;
 }
 
 function getSuitSymbol(suit: string): '♥' | '♦' | '♣' | '♠' {
@@ -45,6 +46,7 @@ export function PlayerHand({
   isProphet = false,
   isHumanTurn = false,
   gamePhase = 'playing',
+  canDeclareProphet = false,
 }: PlayerHandProps) {
   const fanSpread = Math.min(10, (hand.length > 0 ? 150 / hand.length : 10));
 
@@ -135,18 +137,18 @@ export function PlayerHand({
         {onDeclareProphet && (
           <button
             onClick={onDeclareProphet}
-            disabled={isProphet || gamePhase !== 'playing'}
+            disabled={!canDeclareProphet}
             style={{
               padding: '0.5rem 1rem',
-              background: isProphet ? 'var(--accent-gold)' : 'rgba(255, 215, 0, 0.2)',
+              background: isProphet ? 'var(--accent-gold)' : canDeclareProphet ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)',
               border: '2px solid var(--accent-gold)',
               borderRadius: '8px',
-              color: isProphet ? 'var(--bg-deep)' : 'var(--accent-gold)',
+              color: isProphet ? 'var(--bg-deep)' : canDeclareProphet ? 'var(--accent-gold)' : 'var(--text-dim)',
               fontSize: '0.5rem',
-              cursor: isProphet || gamePhase !== 'playing' ? 'not-allowed' : 'pointer',
+              cursor: canDeclareProphet ? 'pointer' : 'not-allowed',
               fontFamily: 'Press Start 2P, cursive',
               transition: 'all 0.2s',
-              opacity: gamePhase !== 'playing' ? 0.5 : 1,
+              opacity: canDeclareProphet ? 1 : 0.5,
               whiteSpace: 'nowrap',
             }}
           >
@@ -257,18 +259,18 @@ export function PlayerHand({
           {onDeclareProphet && (
             <button
               onClick={onDeclareProphet}
-              disabled={isProphet || gamePhase !== 'playing'}
+              disabled={!canDeclareProphet}
               style={{
                 padding: '0.5rem 1rem',
-                background: isProphet ? 'var(--accent-gold)' : 'rgba(255, 215, 0, 0.2)',
+                background: isProphet ? 'var(--accent-gold)' : canDeclareProphet ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)',
                 border: '2px solid var(--accent-gold)',
                 borderRadius: '8px',
-                color: isProphet ? 'var(--bg-deep)' : 'var(--accent-gold)',
+                color: isProphet ? 'var(--bg-deep)' : canDeclareProphet ? 'var(--accent-gold)' : 'var(--text-dim)',
                 fontSize: '0.5rem',
-                cursor: isProphet || gamePhase !== 'playing' ? 'not-allowed' : 'pointer',
+                cursor: canDeclareProphet ? 'pointer' : 'not-allowed',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
-                opacity: gamePhase !== 'playing' ? 0.5 : 1,
+                opacity: canDeclareProphet ? 1 : 0.5,
                 whiteSpace: 'nowrap',
               }}
             >

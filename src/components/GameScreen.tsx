@@ -14,6 +14,7 @@ import { Scoreboard } from './Scoreboard';
 import { HelpOverlay } from './HelpOverlay';
 import { SettingsPanel } from './SettingsPanel';
 import { sounds } from '../audio/sounds';
+import { canDeclareProphet } from '../engine/validation';
 
 interface GameScreenProps {
   onReturnToMenu?: () => void;
@@ -49,6 +50,9 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
 
   // Find the local human Prophet player (may not be the current turn player)
   const prophetPlayer = state.players.find(p => p.isProphet && p.type === 'human' && !p.isGod);
+
+  // Check if active player can declare prophet
+  const canActivePlayerDeclareProphet = activePlayer ? canDeclareProphet(state, activePlayer.id) : false;
 
   const handleCardClick = (cardId: string) => {
     toggleCardSelection(cardId);
@@ -254,7 +258,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
 
         {/* MainLine Board Area - Maximized */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <MainLineBoard mainLine={state.mainLine} prophetMarkerIndex={state.prophetMarkerIndex} />
+          <MainLineBoard mainLine={state.mainLine} prophetMarkerIndex={state.prophetMarkerIndex} totalCardsPlayed={state.totalCardsPlayed} />
         </div>
 
         {/* Cheat Mode - Show Rule */}
@@ -315,6 +319,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
             isProphet={activePlayer.isProphet}
             isHumanTurn={isLocalPlayerTurn}
             gamePhase={state.phase}
+            canDeclareProphet={canActivePlayerDeclareProphet}
           />
         )}
       </div>

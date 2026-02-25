@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { GameState, Player, PlayedCard } from '../../src/engine/types';
 import {
   calculatePlayerScore,
-  calculateDealerScore,
+  calculateGodScore,
   calculateFinalScores,
   getLeader,
 } from '../../src/engine/scoring';
@@ -20,9 +20,9 @@ describe('scoring', () => {
       hand: [],
       score: 0,
       isProphet: false,
-      isDealer: false,
+      isGod: false,
       type: 'ai',
-      suddenDeathMarkers: 0,
+      wasProphet: false,
       isExpelled: false,
     };
 
@@ -32,9 +32,9 @@ describe('scoring', () => {
       hand: [],
       score: 0,
       isProphet: false,
-      isDealer: false,
+      isGod: false,
       type: 'ai',
-      suddenDeathMarkers: 0,
+      wasProphet: false,
       isExpelled: false,
     };
 
@@ -44,9 +44,9 @@ describe('scoring', () => {
       hand: [],
       score: 0,
       isProphet: false,
-      isDealer: true,
+      isGod: true,
       type: 'ai',
-      suddenDeathMarkers: 0,
+      wasProphet: false,
       isExpelled: false,
     };
 
@@ -83,7 +83,8 @@ describe('scoring', () => {
         currentPlayerIndex: 0,
         deck: [],
         mainLine: playedCards,
-        dealerRule: 'test',
+        godRule: 'test',
+        totalCardsPlayed: 0,
         prophetsCorrectCount: 0,
         prophetCorrectCalls: 0,
         prophetIncorrectCalls: 0,
@@ -103,7 +104,8 @@ describe('scoring', () => {
         currentPlayerIndex: 0,
         deck: [],
         mainLine: playedCards,
-        dealerRule: 'test',
+        godRule: 'test',
+        totalCardsPlayed: 0,
         prophetsCorrectCount: 0,
         prophetCorrectCalls: 0,
         prophetIncorrectCalls: 0,
@@ -130,7 +132,8 @@ describe('scoring', () => {
         currentPlayerIndex: 0,
         deck: [],
         mainLine: playedCards,
-        dealerRule: 'test',
+        godRule: 'test',
+        totalCardsPlayed: 0,
         prophetsCorrectCount: 0,
         prophetCorrectCalls: 0,
         prophetIncorrectCalls: 0,
@@ -170,7 +173,8 @@ describe('scoring', () => {
         currentPlayerIndex: 0,
         deck: [],
         mainLine: [...playedCards, ...cardsAfterMarker],
-        dealerRule: 'test',
+        godRule: 'test',
+        totalCardsPlayed: 0,
         prophetsCorrectCount: 0,
         prophetCorrectCalls: 0,
         prophetIncorrectCalls: 0,
@@ -193,7 +197,8 @@ describe('scoring', () => {
         currentPlayerIndex: 0,
         deck: [],
         mainLine: playedCards,
-        dealerRule: 'test',
+        godRule: 'test',
+        totalCardsPlayed: 0,
         prophetsCorrectCount: 0,
         prophetCorrectCalls: 0,
         prophetIncorrectCalls: 0,
@@ -206,35 +211,11 @@ describe('scoring', () => {
       expect(score).toBe(4);
     });
 
-    it('penalizes sudden death markers', () => {
-      const playerWithMarkers = {
-        ...player1,
-        suddenDeathMarkers: 2,
-      };
-      const state: GameState = {
-        phase: 'game_over',
-        players: [dealer, playerWithMarkers, player2],
-        currentPlayerIndex: 0,
-        deck: [],
-        mainLine: playedCards,
-        dealerRule: 'test',
-        prophetsCorrectCount: 0,
-        prophetCorrectCalls: 0,
-        prophetIncorrectCalls: 0,
-        roundNumber: 1,
-        gameStartTime: Date.now(),
-      };
-      // highCount = 0, player has 0 cards, 2 markers
-      // Score = (0 - 0) + 4 (empty hand) - (2 * 5) = -6
-      const score = calculatePlayerScore(playerWithMarkers, state);
-      expect(score).toBe(-6);
-    });
-
-    it('combines all scoring factors', () => {
+    it('combines all scoring factors with Prophet bonus', () => {
       const playerWithEverything = {
         ...player1,
         hand: [{ suit: 'spades', rank: '2', id: 's-2-0' }],
-        suddenDeathMarkers: 1,
+        wasProphet: false,
         isProphet: true,
       };
       const otherPlayer = {
@@ -247,25 +228,25 @@ describe('scoring', () => {
         currentPlayerIndex: 0,
         deck: [],
         mainLine: playedCards,
-        dealerRule: 'test',
+        godRule: 'test',
         prophetsCorrectCount: 0,
         prophetCorrectCalls: 0,
         prophetIncorrectCalls: 0,
         prophetMarkerIndex: 0,
+        totalCardsPlayed: 3,
         roundNumber: 1,
         gameStartTime: Date.now(),
       };
-      // highCount = 2, player has 1 card, 1 marker, is Prophet
+      // highCount = 2, player has 1 card, is Prophet
       // Base: (2 - 1) = 1
-      // Sudden death: -5
       // Prophet bonus: index 1 is correct (+1), index 2 is incorrect (+2) = +3
-      // Total = 1 - 5 + 3 = -1
+      // Total = 1 + 3 = 4
       const score = calculatePlayerScore(playerWithEverything, state);
-      expect(score).toBe(-1);
+      expect(score).toBe(4);
     });
   });
 
-  describe('calculateDealerScore', () => {
+  describe('calculateGodScore', () => {
     it('calculates dealer score based on official rules', () => {
       const state: GameState = {
         phase: 'game_over',
@@ -273,7 +254,8 @@ describe('scoring', () => {
         currentPlayerIndex: 0,
         deck: [],
         mainLine: playedCards,
-        dealerRule: 'test',
+        godRule: 'test',
+        totalCardsPlayed: 0,
         prophetsCorrectCount: 0,
         prophetCorrectCalls: 0,
         prophetIncorrectCalls: 0,
@@ -283,7 +265,7 @@ describe('scoring', () => {
       // Highest player score = 4 (both players have 0 cards + 4 empty hand bonus)
       // Cards before Prophet = 3 (no Prophet, so all cards count)
       // Dealer score = min(4, 2 * 3) = 4
-      const score = calculateDealerScore(state);
+      const score = calculateGodScore(state);
       expect(score).toBe(4);
     });
 
@@ -302,7 +284,8 @@ describe('scoring', () => {
         currentPlayerIndex: 0,
         deck: [],
         mainLine: playedCards,
-        dealerRule: 'test',
+        godRule: 'test',
+        totalCardsPlayed: 0,
         prophetsCorrectCount: 0,
         prophetCorrectCalls: 0,
         prophetIncorrectCalls: 0,
@@ -312,7 +295,7 @@ describe('scoring', () => {
       // Highest player score = 10 - 0 = 10 (player1)
       // Cards before Prophet = 3
       // Dealer score = min(10, 2 * 3) = 6
-      const score = calculateDealerScore(state);
+      const score = calculateGodScore(state);
       expect(score).toBe(6);
     });
 
@@ -327,7 +310,8 @@ describe('scoring', () => {
         currentPlayerIndex: 0,
         deck: [],
         mainLine: Array(20).fill(playedCards[0]),
-        dealerRule: 'test',
+        godRule: 'test',
+        totalCardsPlayed: 0,
         prophetsCorrectCount: 0,
         prophetCorrectCalls: 0,
         prophetIncorrectCalls: 0,
@@ -337,7 +321,7 @@ describe('scoring', () => {
       // Highest player score = 1 - 1 = 0
       // Cards before Prophet = 20
       // Dealer score = min(0, 2 * 20) = 0
-      const score = calculateDealerScore(state);
+      const score = calculateGodScore(state);
       expect(score).toBe(0);
     });
 
@@ -348,7 +332,8 @@ describe('scoring', () => {
         currentPlayerIndex: 0,
         deck: [],
         mainLine: playedCards,
-        dealerRule: 'test',
+        godRule: 'test',
+        totalCardsPlayed: 0,
         prophetsCorrectCount: 0,
         prophetCorrectCalls: 0,
         prophetIncorrectCalls: 0,
@@ -359,7 +344,7 @@ describe('scoring', () => {
       // Highest player score = 4 (0 cards + 4 empty hand bonus)
       // Cards before Prophet = prophetMarkerIndex + 1 = 2
       // Dealer score = min(4, 2 * 2) = 4
-      const score = calculateDealerScore(state);
+      const score = calculateGodScore(state);
       expect(score).toBe(4);
     });
   });
@@ -372,7 +357,8 @@ describe('scoring', () => {
         currentPlayerIndex: 0,
         deck: [],
         mainLine: playedCards,
-        dealerRule: 'test',
+        godRule: 'test',
+        totalCardsPlayed: 0,
         prophetsCorrectCount: 0,
         prophetCorrectCalls: 0,
         prophetIncorrectCalls: 0,
@@ -403,7 +389,8 @@ describe('scoring', () => {
         currentPlayerIndex: 0,
         deck: [],
         mainLine: playedCards,
-        dealerRule: 'test',
+        godRule: 'test',
+        totalCardsPlayed: 0,
         prophetsCorrectCount: 0,
         prophetCorrectCalls: 0,
         prophetIncorrectCalls: 0,
@@ -425,7 +412,8 @@ describe('scoring', () => {
         currentPlayerIndex: 0,
         deck: [],
         mainLine: [],
-        dealerRule: 'test',
+        godRule: 'test',
+        totalCardsPlayed: 0,
         prophetsCorrectCount: 0,
         prophetCorrectCalls: 0,
         prophetIncorrectCalls: 0,

@@ -11,6 +11,7 @@ import type { PlayedCard } from '../engine';
 interface MainLineBoardProps {
   mainLine: PlayedCard[];
   prophetMarkerIndex?: number;
+  totalCardsPlayed: number;
 }
 
 function getSuitSymbol(suit: string): '♥' | '♦' | '♣' | '♠' {
@@ -24,6 +25,37 @@ function getSuitSymbol(suit: string): '♥' | '♦' | '♣' | '♠' {
 }
 
 export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardProps) {
+  // Helper to count all cards played (including branches) up to a certain index
+  const countCardsUpToIndex = (index: number): number => {
+    let count = 0;
+    for (let i = 0; i <= index; i++) {
+      count++; // Main card
+      if (mainLine[i].branches) {
+        count += mainLine[i].branches!.length; // Branch cards
+      }
+    }
+    return count;
+  };
+
+  // Helper to determine if we should show a white marker (every 10 total cards)
+  const shouldShowWhiteMarker = (index: number): boolean => {
+    const cardsUpToHere = countCardsUpToIndex(index);
+    const cardsUpToPrev = index > 0 ? countCardsUpToIndex(index - 1) : 0;
+    // Check if we crossed a 10-card boundary
+    return Math.floor(cardsUpToHere / 10) > Math.floor(cardsUpToPrev / 10);
+  };
+
+  // Helper to determine if we should show a black marker (every 10 cards after prophet)
+  const shouldShowBlackMarker = (index: number): boolean => {
+    if (prophetMarkerIndex === undefined || index <= prophetMarkerIndex) {
+      return false;
+    }
+    // Count cards after prophet marker
+    const cardsAfterProphet = countCardsUpToIndex(index) - countCardsUpToIndex(prophetMarkerIndex);
+    const cardsAfterProphetPrev = index > prophetMarkerIndex + 1 ?
+      countCardsUpToIndex(index - 1) - countCardsUpToIndex(prophetMarkerIndex) : 0;
+    return Math.floor(cardsAfterProphet / 10) > Math.floor(cardsAfterProphetPrev / 10);
+  };
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -276,10 +308,9 @@ export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardPro
             }}
           >
             {mainLine.map((playedCard, index) => {
-              // Check if we should render a black marker after this card
-              const shouldShowMarker = prophetMarkerIndex !== undefined &&
-                (index === prophetMarkerIndex ||
-                 (index > prophetMarkerIndex && (index - prophetMarkerIndex) % 10 === 0));
+              const showProphetMarker = prophetMarkerIndex !== undefined && index === prophetMarkerIndex;
+              const showWhite = shouldShowWhiteMarker(index);
+              const showBlack = shouldShowBlackMarker(index);
 
               return (
                 <React.Fragment key={playedCard.id}>
@@ -401,13 +432,13 @@ export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardPro
                 )}
               </motion.div>
 
-              {/* Black marker for Prophet */}
-              {shouldShowMarker && (
+              {/* Prophet marker (gold) */}
+              {showProphetMarker && (
                 <div
                   style={{
                     width: '4px',
                     height: '160px',
-                    background: 'black',
+                    background: 'var(--accent-gold)',
                     border: '2px solid var(--accent-gold)',
                     borderRadius: '2px',
                     boxShadow: '0 0 10px rgba(255, 215, 0, 0.6)',
@@ -422,15 +453,49 @@ export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardPro
                       left: '50%',
                       transform: 'translate(-50%, -50%) rotate(-90deg)',
                       fontSize: '0.4rem',
-                      color: 'var(--accent-gold)',
+                      color: 'var(--bg-deep)',
                       whiteSpace: 'nowrap',
                       fontWeight: 'bold',
-                      textShadow: '0 0 5px rgba(0, 0, 0, 0.8)',
                     }}
                   >
-                    {index === prophetMarkerIndex ? 'PROPHET' : '10'}
+                    PROPHET
                   </div>
                 </div>
+              )}
+
+              {/* White marker (every 10 total cards) */}
+              {showWhite && !showProphetMarker && (
+                <div
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    background: 'white',
+                    border: '2px solid rgba(255, 255, 255, 0.5)',
+                    position: 'relative',
+                    flexShrink: 0,
+                    alignSelf: 'center',
+                  }}
+                  title={`${countCardsUpToIndex(index)} cards played`}
+                />
+              )}
+
+              {/* Black marker (every 10 cards after prophet) */}
+              {showBlack && (
+                <div
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    background: 'black',
+                    border: '2px solid var(--accent-gold)',
+                    boxShadow: '0 0 10px rgba(255, 215, 0, 0.6)',
+                    position: 'relative',
+                    flexShrink: 0,
+                    alignSelf: 'center',
+                  }}
+                  title={`${countCardsUpToIndex(index) - countCardsUpToIndex(prophetMarkerIndex!)} cards after Prophet`}
+                />
               )}
             </React.Fragment>
               );

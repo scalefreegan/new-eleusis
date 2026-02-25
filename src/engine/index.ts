@@ -42,8 +42,8 @@ export {
   canDeclareProphet,
   canDeclareNoPlay,
   validatePlay,
-  shouldReceiveSuddenDeathMarker,
-  shouldBeExpelled,
+  isSuddenDeath,
+  shouldExpelPlayer,
   shouldGameEnd,
 } from './validation';
 
