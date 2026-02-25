@@ -5,8 +5,8 @@ import {
   canDeclareProphet,
   canDeclareNoPlay,
   validatePlay,
-  shouldReceiveSuddenDeathMarker,
-  shouldBeExpelled,
+  isSuddenDeath,
+  shouldExpelPlayer,
   shouldGameEnd,
 } from '../../src/engine/validation';
 import { createDeck } from '../../src/engine/deck';
@@ -23,9 +23,9 @@ describe('validation', () => {
         hand: [],
         score: 0,
         isProphet: false,
-        isDealer: true,
+        isGod: true,
         type: 'ai',
-        suddenDeathMarkers: 0,
+        wasProphet: false,
         isExpelled: false,
       },
       {
@@ -37,9 +37,9 @@ describe('validation', () => {
         ],
         score: 0,
         isProphet: false,
-        isDealer: false,
+        isGod: false,
         type: 'ai',
-        suddenDeathMarkers: 0,
+        wasProphet: false,
         isExpelled: false,
       },
       {
@@ -50,9 +50,22 @@ describe('validation', () => {
         ],
         score: 0,
         isProphet: false,
-        isDealer: false,
+        isGod: false,
         type: 'ai',
-        suddenDeathMarkers: 0,
+        wasProphet: false,
+        isExpelled: false,
+      },
+      {
+        id: 'player3',
+        name: 'Player 3',
+        hand: [
+          { suit: 'spades', rank: '7', id: 's-7-0' },
+        ],
+        score: 0,
+        isProphet: false,
+        isGod: false,
+        type: 'ai',
+        wasProphet: false,
         isExpelled: false,
       },
     ];
@@ -71,8 +84,11 @@ describe('validation', () => {
           playedBy: 'dealer',
         },
       ],
-      dealerRule: 'test-rule',
+      godRule: 'test-rule',
       prophetsCorrectCount: 0,
+      prophetCorrectCalls: 0,
+      prophetIncorrectCalls: 0,
+      totalCardsPlayed: 1,
       roundNumber: 1,
       gameStartTime: Date.now(),
     };
@@ -208,57 +224,73 @@ describe('validation', () => {
     });
   });
 
-  describe('shouldReceiveSuddenDeathMarker', () => {
-    it('returns true when hand exceeds threshold', () => {
-      const player: Player = {
-        ...players[1],
-        hand: Array(25).fill({ suit: 'hearts', rank: 'A', id: 'test' }),
+  describe('isSuddenDeath', () => {
+    it('returns true when totalCardsPlayed >= 40', () => {
+      const state: GameState = {
+        ...baseState,
+        totalCardsPlayed: 40,
       };
-      expect(shouldReceiveSuddenDeathMarker(player)).toBe(true);
+      expect(isSuddenDeath(state)).toBe(true);
     });
 
-    it('returns false when hand is below threshold', () => {
-      const player: Player = {
-        ...players[1],
-        hand: Array(20).fill({ suit: 'hearts', rank: 'A', id: 'test' }),
+    it('returns false when totalCardsPlayed < 40', () => {
+      const state: GameState = {
+        ...baseState,
+        totalCardsPlayed: 39,
       };
-      expect(shouldReceiveSuddenDeathMarker(player)).toBe(false);
+      expect(isSuddenDeath(state)).toBe(false);
     });
 
-    it('returns false when player is expelled', () => {
-      const player: Player = {
-        ...players[1],
-        hand: Array(30).fill({ suit: 'hearts', rank: 'A', id: 'test' }),
-        isExpelled: true,
+    it('returns true when 30 cards played after prophet marker', () => {
+      const mainLine = Array(35).fill(null).map((_, i) => ({
+        suit: 'hearts' as const,
+        rank: 'A' as const,
+        id: `card-${i}`,
+        correct: true,
+        playedBy: 'player1',
+      }));
+      const state: GameState = {
+        ...baseState,
+        mainLine,
+        prophetMarkerIndex: 4, // 30 cards after index 4 = 35 total - 5 before prophet
+        totalCardsPlayed: 35,
       };
-      expect(shouldReceiveSuddenDeathMarker(player)).toBe(false);
+      expect(isSuddenDeath(state)).toBe(true);
     });
 
-    it('uses custom threshold', () => {
-      const player: Player = {
-        ...players[1],
-        hand: Array(15).fill({ suit: 'hearts', rank: 'A', id: 'test' }),
+    it('returns false when fewer than 30 cards after prophet marker', () => {
+      const mainLine = Array(30).fill(null).map((_, i) => ({
+        suit: 'hearts' as const,
+        rank: 'A' as const,
+        id: `card-${i}`,
+        correct: true,
+        playedBy: 'player1',
+      }));
+      const state: GameState = {
+        ...baseState,
+        mainLine,
+        prophetMarkerIndex: 4,
+        totalCardsPlayed: 30,
       };
-      expect(shouldReceiveSuddenDeathMarker(player, 15)).toBe(true);
-      expect(shouldReceiveSuddenDeathMarker(player, 20)).toBe(false);
+      expect(isSuddenDeath(state)).toBe(false);
     });
   });
 
-  describe('shouldBeExpelled', () => {
-    it('returns true when player has 3 markers', () => {
-      const player: Player = {
-        ...players[1],
-        suddenDeathMarkers: 3,
+  describe('shouldExpelPlayer', () => {
+    it('returns true when in sudden death', () => {
+      const state: GameState = {
+        ...baseState,
+        totalCardsPlayed: 40,
       };
-      expect(shouldBeExpelled(player)).toBe(true);
+      expect(shouldExpelPlayer(state)).toBe(true);
     });
 
-    it('returns false when player has fewer than 3 markers', () => {
-      const player: Player = {
-        ...players[1],
-        suddenDeathMarkers: 2,
+    it('returns false when not in sudden death', () => {
+      const state: GameState = {
+        ...baseState,
+        totalCardsPlayed: 20,
       };
-      expect(shouldBeExpelled(player)).toBe(false);
+      expect(shouldExpelPlayer(state)).toBe(false);
     });
   });
 
@@ -272,19 +304,44 @@ describe('validation', () => {
       const state = {
         ...baseState,
         players: baseState.players.map(p =>
-          p.isDealer ? p : { ...p, isExpelled: true }
+          p.isGod ? p : { ...p, isExpelled: true }
         ),
       };
       expect(shouldGameEnd(state)).toBe(true);
     });
 
-    it('returns true when prophet is correct 3 times', () => {
-      const state = { ...baseState, prophetsCorrectCount: 3 };
+    it('returns true when any player has empty hand', () => {
+      const state = {
+        ...baseState,
+        players: baseState.players.map(p =>
+          p.id === 'player1' ? { ...p, hand: [] } : p
+        ),
+      };
       expect(shouldGameEnd(state)).toBe(true);
     });
 
     it('returns false when game should continue', () => {
       expect(shouldGameEnd(baseState)).toBe(false);
+    });
+
+    it('returns false when prophet has empty hand', () => {
+      const state = {
+        ...baseState,
+        players: baseState.players.map(p =>
+          p.id === 'player1' ? { ...p, hand: [], isProphet: true } : p
+        ),
+      };
+      expect(shouldGameEnd(state)).toBe(false);
+    });
+
+    it('returns false when expelled player has empty hand', () => {
+      const state = {
+        ...baseState,
+        players: baseState.players.map(p =>
+          p.id === 'player1' ? { ...p, hand: [], isExpelled: true } : p
+        ),
+      };
+      expect(shouldGameEnd(state)).toBe(false);
     });
   });
 });
