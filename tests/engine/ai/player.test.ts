@@ -24,7 +24,6 @@ describe('AI Player', () => {
     deck: [],
     mainLine: [],
     dealerRule: 'test',
-    prophetsCorrectCount: 0,
     roundNumber: 1,
     gameStartTime: Date.now(),
   };

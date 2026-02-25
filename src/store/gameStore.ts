@@ -573,7 +573,7 @@ export const useGameStore = create<GameStore>()(
       if (!saved) return;
 
       const parsed = JSON.parse(saved);
-      const { state: savedState, godRuleName } = parsed;
+      const { state: savedState, godRuleName, lastGodIndex, trueProphetIndex } = parsed;
 
       // Reconstruct AI dealer if it exists
       let aiGod = null;
@@ -590,6 +590,8 @@ export const useGameStore = create<GameStore>()(
         showTransitionOverlay: false,
         transitionTargetName: '',
         hasSavedGame: true,
+        lastGodIndex: lastGodIndex ?? -1,
+        trueProphetIndex: trueProphetIndex ?? -1,
       });
     } catch (err) {
       console.error('Failed to load saved game:', err);

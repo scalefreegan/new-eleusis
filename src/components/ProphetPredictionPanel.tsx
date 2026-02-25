@@ -1,8 +1,9 @@
 /**
- * Prophet Prediction Panel - appears when Prophet needs to predict
+ * Prophet Prediction Panel - appears when Prophet needs to judge a card
  */
 
 import { GlassPanel } from './GlassPanel';
+import { Card as CardComponent } from './Card';
 import type { GameState } from '../engine';
 
 interface ProphetPredictionPanelProps {
@@ -10,6 +11,16 @@ interface ProphetPredictionPanelProps {
   prophetId: string;
   onPredictRight: () => void;
   onPredictWrong: () => void;
+}
+
+function getSuitSymbol(suit: string): '♥' | '♦' | '♣' | '♠' {
+  const suitMap: Record<string, '♥' | '♦' | '♣' | '♠'> = {
+    hearts: '♥',
+    diamonds: '♦',
+    clubs: '♣',
+    spades: '♠',
+  };
+  return suitMap[suit] || '♥';
 }
 
 export function ProphetPredictionPanel({
@@ -20,10 +31,13 @@ export function ProphetPredictionPanel({
 }: ProphetPredictionPanelProps) {
   const currentPlayer = state.players[state.currentPlayerIndex];
   const prophet = state.players.find(p => p.id === prophetId);
+  const pendingCard = state.pendingPlay?.cards[0];
 
-  if (!prophet || !currentPlayer || currentPlayer.id === prophetId) {
+  if (!prophet || !currentPlayer || currentPlayer.id === prophetId || !pendingCard) {
     return null;
   }
+
+  const playingPlayer = state.players.find(p => p.id === state.pendingPlay?.playerId);
 
   return (
     <div
@@ -53,16 +67,38 @@ export function ProphetPredictionPanel({
               fontWeight: 'bold',
             }}
           >
-            👑 PROPHET PREDICTION
+            👑 PROPHET JUDGMENT
           </div>
           <div
             style={{
-              fontSize: '0.75rem',
+              fontSize: '0.65rem',
               color: 'var(--text-light)',
-              marginBottom: '1.5rem',
+              marginBottom: '1rem',
             }}
           >
-            Will {currentPlayer.name}'s next card be correct?
+            {playingPlayer?.name} played:
+          </div>
+
+          {/* Show the card being judged */}
+          <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+            <div style={{ transform: 'scale(1.2)' }}>
+              <CardComponent
+                suit={getSuitSymbol(pendingCard.suit)}
+                rank={pendingCard.rank}
+                disabled={true}
+              />
+            </div>
+          </div>
+
+          <div
+            style={{
+              fontSize: '0.7rem',
+              color: 'var(--text-light)',
+              marginBottom: '1.5rem',
+              fontWeight: 'bold',
+            }}
+          >
+            Is this card correct?
           </div>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
             <button
@@ -88,7 +124,7 @@ export function ProphetPredictionPanel({
                 e.currentTarget.style.transform = 'scale(1)';
               }}
             >
-              ✓ RIGHT
+              ✓ CORRECT
             </button>
             <button
               onClick={onPredictWrong}
@@ -113,7 +149,7 @@ export function ProphetPredictionPanel({
                 e.currentTarget.style.transform = 'scale(1)';
               }}
             >
-              ✗ WRONG
+              ✗ INCORRECT
             </button>
           </div>
           <div
@@ -123,7 +159,7 @@ export function ProphetPredictionPanel({
               color: 'var(--text-dim)',
             }}
           >
-            Correct Calls: {state.prophetCorrectCalls}
+            Your Correct Calls: {state.prophetCorrectCalls}
           </div>
         </div>
       </GlassPanel>

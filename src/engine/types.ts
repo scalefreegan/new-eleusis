@@ -78,7 +78,6 @@ export interface GameState {
   godRuleFunction?: (lastCard: Card, newCard: Card) => boolean;
   noPlayDeclaration?: NoPlayDeclaration;
   pendingPlay?: PendingPlay;
-  prophetsCorrectCount: number;
   prophetMarkerIndex?: number;
   prophetHandAside?: Card[];
   prophetCorrectCalls: number;

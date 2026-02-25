@@ -23,7 +23,7 @@ export function GameOverScreen({ state, onPlayAgain, onMainMenu }: GameOverScree
     .sort((a, b) => scores[b.id] - scores[a.id]);
 
   const winner = sortedPlayers[0];
-  const isOverthrown = state.prophetsCorrectCount >= 3;
+  const isTrueProphet = state.players.some(p => p.isProphet && !p.isGod);
 
   // Play game over sound on mount
   useEffect(() => {
@@ -64,7 +64,7 @@ export function GameOverScreen({ state, onPlayAgain, onMainMenu }: GameOverScree
             GAME OVER
           </h1>
 
-          {isOverthrown && (
+          {isTrueProphet && (
             <div
               style={{
                 fontSize: '0.75rem',

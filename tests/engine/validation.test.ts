@@ -85,7 +85,6 @@ describe('validation', () => {
         },
       ],
       godRule: 'test-rule',
-      prophetsCorrectCount: 0,
       prophetCorrectCalls: 0,
       prophetIncorrectCalls: 0,
       totalCardsPlayed: 1,

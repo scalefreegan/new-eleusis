@@ -25,7 +25,6 @@ describe('Scoreboard', () => {
     deck: [],
     mainLine: [],
     godRule: 'test',
-    prophetsCorrectCount: 0,
     prophetCorrectCalls: 0,
     prophetIncorrectCalls: 0,
     totalCardsPlayed: 0,
