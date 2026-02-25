@@ -41,6 +41,7 @@ interface GameStore {
   confirmTurnTransition: () => void;
   judgeCardAsHumanDealer: (cardId: string, correct: boolean) => void;
   makeProphetPrediction: (prediction: boolean) => void;
+  resolveNoPlayAsHumanGod: (valid: boolean) => void;
 
   // AI actions
   executeAITurn: () => void;
@@ -196,6 +197,7 @@ export const useGameStore = create<GameStore>()(
                     type: 'JUDGE_CARD',
                     cardId: action.cardId,
                     correct: godJudgment,
+                    skipPenalty: true,
                   });
                 }
               }
@@ -227,6 +229,44 @@ export const useGameStore = create<GameStore>()(
           }
         }
       }
+    }
+
+    // After DECLARE_NO_PLAY, auto-resolve for AI God
+    if (action.type === 'DECLARE_NO_PLAY' && newState.phase === 'no_play_dispute') {
+      const { aiGod } = get();
+      if (aiGod && newState.noPlayDeclaration && newState.mainLine.length > 0) {
+        const player = newState.players.find(p => p.id === newState.noPlayDeclaration!.playerId);
+        if (player) {
+          const lastCard = newState.mainLine[newState.mainLine.length - 1];
+          // Check if any card in player's hand is valid
+          const hasValidPlay = player.hand.some(card => aiGod.judgeCard(lastCard, card));
+
+          setTimeout(() => {
+            if (hasValidPlay) {
+              // Invalid no-play - find the correct card
+              const correctCard = player.hand.find(card => aiGod.judgeCard(lastCard, card));
+              get().dispatch({
+                type: 'RESOLVE_NO_PLAY',
+                valid: false,
+                correctCardId: correctCard?.id,
+              });
+            } else {
+              // Valid no-play
+              get().dispatch({
+                type: 'RESOLVE_NO_PLAY',
+                valid: true,
+              });
+            }
+          }, 800);
+        }
+      }
+    }
+
+    // After RESOLVE_NO_PLAY, dispatch END_TURN to advance play
+    if (action.type === 'RESOLVE_NO_PLAY' && previousState.phase === 'no_play_dispute' && newState.phase === 'playing') {
+      setTimeout(() => {
+        get().dispatch({ type: 'END_TURN' });
+      }, 400);
     }
 
     // After JUDGE_CARD clears pendingPlay, auto-dispatch END_TURN
@@ -479,6 +519,37 @@ export const useGameStore = create<GameStore>()(
         playerId: prophetPlayer.id,
         cardId: nextCard.id,
         prediction,
+      });
+    }
+  },
+
+  resolveNoPlayAsHumanGod: (valid: boolean) => {
+    const { state, dispatch } = get();
+
+    if (!state.noPlayDeclaration || !state.godRuleFunction || state.mainLine.length === 0) {
+      return;
+    }
+
+    const player = state.players.find(p => p.id === state.noPlayDeclaration!.playerId);
+    if (!player) {
+      return;
+    }
+
+    if (valid) {
+      // Valid no-play - player had no valid cards
+      dispatch({
+        type: 'RESOLVE_NO_PLAY',
+        valid: true,
+      });
+    } else {
+      // Invalid no-play - find a correct card in player's hand
+      const lastCard = state.mainLine[state.mainLine.length - 1];
+      const correctCard = player.hand.find(card => state.godRuleFunction!(lastCard, card));
+
+      dispatch({
+        type: 'RESOLVE_NO_PLAY',
+        valid: false,
+        correctCardId: correctCard?.id,
       });
     }
   },

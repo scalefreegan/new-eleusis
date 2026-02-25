@@ -10,6 +10,7 @@ import { GameOverScreen } from './GameOverScreen';
 import { ProphetPredictionPanel } from './ProphetPredictionPanel';
 import { TurnTransitionOverlay } from './TurnTransitionOverlay';
 import { DealerControlPanel } from './DealerControlPanel';
+import { NoPlayDisputePanel } from './NoPlayDisputePanel';
 import { Scoreboard } from './Scoreboard';
 import { HelpOverlay } from './HelpOverlay';
 import { SettingsPanel } from './SettingsPanel';
@@ -32,9 +33,11 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
     confirmTurnTransition,
     judgeCardAsHumanDealer,
     makeProphetPrediction,
+    resolveNoPlayAsHumanGod,
     resetGame,
     getActiveLocalPlayer,
     getCurrentPlayer,
+    aiGod,
   } = useGameStore();
 
   const [handCollapsed, setHandCollapsed] = useState(false);
@@ -112,6 +115,14 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
     judgeCardAsHumanDealer(cardId, correct);
   };
 
+  const handleAcceptNoPlay = () => {
+    resolveNoPlayAsHumanGod(true);
+  };
+
+  const handleRejectNoPlay = () => {
+    resolveNoPlayAsHumanGod(false);
+  };
+
   // Scores are now displayed in Scoreboard component
 
   // Show Prophet prediction panel if local human Prophet exists and another player's cards are pending
@@ -119,6 +130,10 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
 
   // Show Dealer control panel if local player is dealer and a card is awaiting judgment
   const showDealerPanel = currentPlayer?.isGod && currentPlayer.type === 'human' && state.phase === 'awaiting_judgment' && state.pendingPlay && state.pendingPlay.cards.length > 0;
+
+  // Show No-Play dispute panel when in no_play_dispute phase
+  const showNoPlayPanel = state.phase === 'no_play_dispute' && state.noPlayDeclaration;
+  const isAIGod = !!aiGod;
 
   // Extract IDs for use in JSX (avoids TypeScript narrowing issues)
   const prophetId = prophetPlayer?.id;
@@ -445,6 +460,16 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
           pendingCard={state.pendingPlay.cards[0]}
           playerName={state.pendingPlay.playerId}
           onJudge={handleJudgeCard}
+        />
+      )}
+
+      {/* No-Play Dispute Panel */}
+      {showNoPlayPanel && (
+        <NoPlayDisputePanel
+          state={state}
+          onAccept={handleAcceptNoPlay}
+          onReject={handleRejectNoPlay}
+          isAIGod={isAIGod}
         />
       )}
 

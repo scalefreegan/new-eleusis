@@ -190,7 +190,7 @@ function playCard(state: GameState, action: { type: 'PLAY_CARD'; playerId: strin
 /**
  * Judge a played card as correct or incorrect
  */
-function judgeCard(state: GameState, action: { type: 'JUDGE_CARD'; cardId: string; correct: boolean }): GameState {
+function judgeCard(state: GameState, action: { type: 'JUDGE_CARD'; cardId: string; correct: boolean; skipPenalty?: boolean }): GameState {
   if (!state.pendingPlay) {
     return state;
   }
@@ -234,23 +234,25 @@ function judgeCard(state: GameState, action: { type: 'JUDGE_CARD'; cardId: strin
       ];
     }
 
-    // Deal 2 penalty cards to the player
-    const { dealt: penaltyCards, remaining } = dealCards(remainingDeck, 2);
-    remainingDeck = remaining;
+    // Deal 2 penalty cards to the player (unless skipPenalty is set)
+    if (!action.skipPenalty) {
+      const { dealt: penaltyCards, remaining } = dealCards(remainingDeck, 2);
+      remainingDeck = remaining;
 
-    updatedPlayers = updatedPlayers.map(p => {
-      if (p.id === state.pendingPlay!.playerId) {
-        return { ...p, hand: [...p.hand, ...penaltyCards] };
-      }
-      return p;
-    });
+      updatedPlayers = updatedPlayers.map(p => {
+        if (p.id === state.pendingPlay!.playerId) {
+          return { ...p, hand: [...p.hand, ...penaltyCards] };
+        }
+        return p;
+      });
+    }
   }
 
   // Increment totalCardsPlayed
   const totalCardsPlayed = state.totalCardsPlayed + 1;
 
-  // Check if player should be expelled (sudden death + wrong play)
-  if (!action.correct && isSuddenDeath({ ...state, totalCardsPlayed })) {
+  // Check if player should be expelled (sudden death + wrong play), unless skipPenalty is set
+  if (!action.correct && !action.skipPenalty && isSuddenDeath({ ...state, totalCardsPlayed })) {
     updatedPlayers = updatedPlayers.map(p => {
       if (p.id === state.pendingPlay!.playerId) {
         return { ...p, isExpelled: true };

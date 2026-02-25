@@ -41,6 +41,7 @@ export {
   canPlayCard,
   canDeclareProphet,
   canDeclareNoPlay,
+  canDisputeNoPlay,
   validatePlay,
   isSuddenDeath,
   shouldExpelPlayer,

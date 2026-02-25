@@ -93,7 +93,7 @@ export type GameAction =
   | { type: 'SET_GOD_RULE'; rule: string; ruleFunction?: (lastCard: Card, newCard: Card) => boolean }
   | { type: 'DEAL_CARDS'; count: number }
   | { type: 'PLAY_CARD'; playerId: string; cardIds: string[] }
-  | { type: 'JUDGE_CARD'; cardId: string; correct: boolean }
+  | { type: 'JUDGE_CARD'; cardId: string; correct: boolean; skipPenalty?: boolean }
   | { type: 'DECLARE_PROPHET'; playerId: string }
   | { type: 'RESIGN_PROPHET'; playerId: string }
   | { type: 'PROPHET_PREDICT'; playerId: string; cardId: string; prediction: boolean }

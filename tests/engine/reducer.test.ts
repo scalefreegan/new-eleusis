@@ -611,6 +611,123 @@ describe('gameReducer', () => {
       expect(playedCard.prophetPrediction?.predictedBy).toBe('player2');
       expect(playedCard.prophetPrediction?.prediction).toBe(true);
     });
+
+    it('deals penalty cards for incorrect play by default', () => {
+      const player = initialState.players.find(p => p.id === 'player1')!;
+      const initialHandSize = player.hand.length;
+      const cardId = player.hand[0].id;
+
+      let state = gameReducer(initialState, {
+        type: 'PLAY_CARD',
+        playerId: 'player1',
+        cardIds: [cardId],
+      });
+
+      state = gameReducer(state, {
+        type: 'JUDGE_CARD',
+        cardId,
+        correct: false,
+      });
+
+      const updatedPlayer = state.players.find(p => p.id === 'player1')!;
+      // Player should have initial hand minus played card plus 2 penalty cards
+      expect(updatedPlayer.hand.length).toBe(initialHandSize + 1); // -1 played, +2 penalty = +1 net
+    });
+
+    it('skips penalty cards when skipPenalty is true', () => {
+      const player = initialState.players.find(p => p.id === 'player1')!;
+      const initialHandSize = player.hand.length;
+      const cardId = player.hand[0].id;
+
+      let state = gameReducer(initialState, {
+        type: 'PLAY_CARD',
+        playerId: 'player1',
+        cardIds: [cardId],
+      });
+
+      state = gameReducer(state, {
+        type: 'JUDGE_CARD',
+        cardId,
+        correct: false,
+        skipPenalty: true,
+      });
+
+      const updatedPlayer = state.players.find(p => p.id === 'player1')!;
+      // Player should have initial hand minus played card, no penalty cards
+      expect(updatedPlayer.hand.length).toBe(initialHandSize - 1);
+    });
+
+    it('still places card in branch when skipPenalty is true', () => {
+      const player = initialState.players.find(p => p.id === 'player1')!;
+      const cardId = player.hand[0].id;
+
+      let state = gameReducer(initialState, {
+        type: 'PLAY_CARD',
+        playerId: 'player1',
+        cardIds: [cardId],
+      });
+
+      state = gameReducer(state, {
+        type: 'JUDGE_CARD',
+        cardId,
+        correct: false,
+        skipPenalty: true,
+      });
+
+      const lastCard = state.mainLine[state.mainLine.length - 1];
+      expect(lastCard.branches).toBeDefined();
+      expect(lastCard.branches).toHaveLength(1);
+      expect(lastCard.branches![0].correct).toBe(false);
+    });
+
+    it('skips expulsion during sudden death when skipPenalty is true', () => {
+      const player = initialState.players.find(p => p.id === 'player1')!;
+      const cardId = player.hand[0].id;
+
+      // Set up sudden death state (120+ cards played)
+      initialState.totalCardsPlayed = 120;
+
+      let state = gameReducer(initialState, {
+        type: 'PLAY_CARD',
+        playerId: 'player1',
+        cardIds: [cardId],
+      });
+
+      state = gameReducer(state, {
+        type: 'JUDGE_CARD',
+        cardId,
+        correct: false,
+        skipPenalty: true,
+      });
+
+      const updatedPlayer = state.players.find(p => p.id === 'player1')!;
+      // Player should NOT be expelled despite sudden death + wrong play
+      expect(updatedPlayer.isExpelled).toBe(false);
+    });
+
+    it('expels player during sudden death when skipPenalty is omitted', () => {
+      const player = initialState.players.find(p => p.id === 'player1')!;
+      const cardId = player.hand[0].id;
+
+      // Set up sudden death state (120+ cards played)
+      initialState.totalCardsPlayed = 120;
+
+      let state = gameReducer(initialState, {
+        type: 'PLAY_CARD',
+        playerId: 'player1',
+        cardIds: [cardId],
+      });
+
+      state = gameReducer(state, {
+        type: 'JUDGE_CARD',
+        cardId,
+        correct: false,
+      });
+
+      const updatedPlayer = state.players.find(p => p.id === 'player1')!;
+      // Player SHOULD be expelled (sudden death + wrong play + no skipPenalty)
+      expect(updatedPlayer.isExpelled).toBe(true);
+    });
   });
 
   describe('PROPHET_PREDICT with pendingPlay', () => {
