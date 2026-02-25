@@ -3,15 +3,17 @@
  */
 
 import React from 'react';
-import type { Player } from '../engine/types';
+import type { Player, GameState } from '../engine/types';
+import { calculatePlayerScore, calculateGodScore } from '../engine/scoring';
 import { motion } from 'framer-motion';
 
 interface ScoreboardProps {
   players: Player[];
   currentPlayerIndex: number;
+  gameState: GameState;
 }
 
-export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIndex }) => {
+export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIndex, gameState }) => {
   return (
     <div style={{ width: '100%' }}>
       <h2
@@ -28,6 +30,11 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
         {players.map((player, index) => {
           const isCurrent = index === currentPlayerIndex;
           const isExpelled = player.isExpelled;
+
+          // Calculate live score
+          const currentScore = player.isGod
+            ? calculateGodScore(gameState)
+            : calculatePlayerScore(player, gameState);
 
           return (
             <motion.div
@@ -134,7 +141,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
                         : 'var(--accent-gold)',
                     }}
                   >
-                    {player.score}
+                    {currentScore}
                   </span>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -143,36 +150,13 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
                     style={{
                       color: isExpelled
                         ? 'var(--text-dim)'
-                        : player.hand.length >= 25
-                        ? '#dc143c'
-                        : player.hand.length >= 20
-                        ? '#ffa500'
                         : 'var(--text-light)',
                     }}
                   >
                     {player.hand.length}
-                    {!isExpelled && player.hand.length >= 25 && ' 💀'}
-                    {!isExpelled && player.hand.length >= 20 && player.hand.length < 25 && ' ⚠️'}
                   </span>
                 </div>
               </div>
-
-              {/* Sudden Death Markers */}
-              {player.suddenDeathMarkers > 0 && (
-                <div
-                  style={{
-                    fontSize: '0.6rem',
-                    marginTop: '0.5rem',
-                    padding: '0.25rem 0.5rem',
-                    background: 'rgba(220, 20, 60, 0.2)',
-                    border: '1px solid rgba(220, 20, 60, 0.5)',
-                    borderRadius: '4px',
-                    color: '#dc143c',
-                  }}
-                >
-                  💀 {player.suddenDeathMarkers} Marker{player.suddenDeathMarkers !== 1 ? 's' : ''}
-                </div>
-              )}
             </motion.div>
           );
         })}

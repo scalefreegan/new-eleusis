@@ -30,7 +30,7 @@ describe('StartMenu', () => {
     const onStartGame = vi.fn();
     render(<StartMenu onStartGame={onStartGame} />);
 
-    const dealerInput = screen.getAllByPlaceholderText('Dealer Name')[0] as HTMLInputElement;
+    const dealerInput = screen.getAllByPlaceholderText('God Name')[0] as HTMLInputElement;
     fireEvent.change(dealerInput, { target: { value: 'Custom Dealer' } });
 
     expect(dealerInput.value).toBe('Custom Dealer');
@@ -108,8 +108,8 @@ describe('StartMenu', () => {
 
     // Should have 4 configs (1 dealer + 3 players)
     expect(configs).toHaveLength(4);
-    expect(configs[0].isDealer).toBe(true);
-    expect(configs[1].isDealer).toBe(false);
+    expect(configs[0].isGod).toBe(true);
+    expect(configs[1].isGod).toBe(false);
   });
 
   it('applies Solo vs AI preset correctly', () => {

@@ -41,16 +41,17 @@ export {
   canPlayCard,
   canDeclareProphet,
   canDeclareNoPlay,
+  canDisputeNoPlay,
   validatePlay,
-  shouldReceiveSuddenDeathMarker,
-  shouldBeExpelled,
+  isSuddenDeath,
+  shouldExpelPlayer,
   shouldGameEnd,
 } from './validation';
 
 // Scoring
 export {
   calculatePlayerScore,
-  calculateDealerScore,
+  calculateGodScore,
   calculateFinalScores,
   getLeader,
 } from './scoring';

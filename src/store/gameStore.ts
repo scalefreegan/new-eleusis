@@ -18,10 +18,12 @@ import { sounds } from '../audio/sounds';
 interface GameStore {
   state: GameState;
   selectedCards: Set<string>;
-  aiDealer: ReturnType<typeof createAIDealer> | null;
+  aiGod: ReturnType<typeof createAIDealer> | null;
   showTransitionOverlay: boolean;
   transitionTargetName: string;
   hasSavedGame: boolean;
+  lastGodIndex: number; // Track which player was God last game for rotation
+  trueProphetIndex: number; // Track True Prophet (becomes next God, -1 if none)
 
   // Actions
   dispatch: (action: GameAction) => void;
@@ -39,6 +41,7 @@ interface GameStore {
   confirmTurnTransition: () => void;
   judgeCardAsHumanDealer: (cardId: string, correct: boolean) => void;
   makeProphetPrediction: (prediction: boolean) => void;
+  resolveNoPlayAsHumanGod: (valid: boolean) => void;
 
   // AI actions
   executeAITurn: () => void;
@@ -55,10 +58,12 @@ export const useGameStore = create<GameStore>()(
     (set, get) => ({
       state: createInitialState(),
       selectedCards: new Set(),
-      aiDealer: null,
+      aiGod: null,
       showTransitionOverlay: false,
       transitionTargetName: '',
       hasSavedGame: false,
+      lastGodIndex: -1, // -1 means no previous God, start with first player
+      trueProphetIndex: -1, // -1 means no True Prophet
 
   dispatch: (action: GameAction) => {
     const previousState = get().state;
@@ -72,17 +77,34 @@ export const useGameStore = create<GameStore>()(
       }, 300);
     }
 
+    // After DECLARE_PROPHET, end turn and advance to next player
+    if (action.type === 'DECLARE_PROPHET') {
+      setTimeout(() => {
+        get().dispatch({ type: 'END_TURN' });
+      }, 400);
+    }
+
+    // After END_GAME, check for True Prophet
+    if (action.type === 'END_GAME') {
+      const trueProphet = newState.players.find(p => p.isProphet);
+      if (trueProphet) {
+        // Find the index of the True Prophet in the original configs order
+        const trueProphetIndex = newState.players.findIndex(p => p.id === trueProphet.id);
+        set({ trueProphetIndex });
+      }
+    }
+
     // After PLAY_CARD with AI dealer, auto-judge the cards
     if (action.type === 'PLAY_CARD' && newState.pendingPlay) {
-      const { aiDealer } = get();
+      const { aiGod } = get();
       const player = newState.players.find(p => p.id === action.playerId);
 
       // Check if a Prophet needs to predict before judgment
-      const prophetPlayer = newState.players.find(p => p.isProphet && p.type === 'human' && !p.isDealer);
+      const prophetPlayer = newState.players.find(p => p.isProphet && p.type === 'human' && !p.isGod);
       const shouldWaitForProphet = prophetPlayer && prophetPlayer.id !== action.playerId;
 
       // Only auto-judge if there's an AI dealer, no Prophet awaiting prediction, and player is human
-      if (aiDealer && player && player.type === 'human' && newState.mainLine.length > 0 && !shouldWaitForProphet) {
+      if (aiGod && player && player.type === 'human' && newState.mainLine.length > 0 && !shouldWaitForProphet) {
         const cardIds = newState.pendingPlay.cards.map(c => c.id);
 
         // Judge each card sequentially
@@ -93,7 +115,7 @@ export const useGameStore = create<GameStore>()(
 
             if (card && currentState.mainLine.length > 0) {
               const lastCard = currentState.mainLine[currentState.mainLine.length - 1];
-              const isCorrect = aiDealer.judgeCard(lastCard, card);
+              const isCorrect = aiGod.judgeCard(lastCard, card);
 
               // Play judgment sound
               setTimeout(() => {
@@ -115,10 +137,10 @@ export const useGameStore = create<GameStore>()(
       }
     }
 
-    // After PROPHET_PREDICT with AI dealer, auto-judge the predicted card
+    // After PROPHET_PREDICT with AI dealer, compare prediction to dealer judgment
     if (action.type === 'PROPHET_PREDICT' && newState.pendingPlay) {
-      const { aiDealer } = get();
-      if (aiDealer && newState.mainLine.length > 0) {
+      const { aiGod } = get();
+      if (aiGod && newState.mainLine.length > 0) {
         const card = newState.pendingPlay.cards.find(c => c.id === action.cardId);
         if (card) {
           setTimeout(() => {
@@ -127,26 +149,124 @@ export const useGameStore = create<GameStore>()(
               const pendingCard = currentState.pendingPlay.cards.find(c => c.id === action.cardId);
               if (pendingCard) {
                 const lastCard = currentState.mainLine[currentState.mainLine.length - 1];
-                const isCorrect = aiDealer.judgeCard(lastCard, pendingCard);
+                const godJudgment = aiGod.judgeCard(lastCard, pendingCard);
+                const prophetPrediction = action.prediction;
+                const prophetPlayer = currentState.players.find(p => p.isProphet && !p.isGod);
 
-                setTimeout(() => {
-                  if (isCorrect) {
-                    sounds.playCorrect();
-                  } else {
-                    sounds.playWrong();
+                // Check if Prophet's prediction matches dealer's judgment
+                const approved = prophetPrediction === godJudgment;
+
+                if (approved) {
+                  // Prophet was correct - proceed normally
+                  get().dispatch({
+                    type: 'PROPHET_VERIFY',
+                    prediction: prophetPrediction,
+                    godJudgment,
+                    cardId: action.cardId,
+                  });
+
+                  setTimeout(() => {
+                    if (godJudgment) {
+                      sounds.playCorrect();
+                    } else {
+                      sounds.playWrong();
+                    }
+                  }, 150);
+
+                  get().dispatch({
+                    type: 'JUDGE_CARD',
+                    cardId: action.cardId,
+                    correct: godJudgment,
+                  });
+                } else {
+                  // Prophet was wrong - overthrow them
+                  if (prophetPlayer) {
+                    get().dispatch({
+                      type: 'OVERTHROW_PROPHET',
+                      prophetId: prophetPlayer.id,
+                    });
                   }
-                }, 150);
 
-                get().dispatch({
-                  type: 'JUDGE_CARD',
-                  cardId: action.cardId,
-                  correct: isCorrect,
-                });
+                  // Still judge the card with the actual result (no penalty to player)
+                  setTimeout(() => {
+                    // Play a distinctive overthrow sound (using wrong sound for now)
+                    sounds.playWrong();
+                  }, 150);
+
+                  get().dispatch({
+                    type: 'JUDGE_CARD',
+                    cardId: action.cardId,
+                    correct: godJudgment,
+                    skipPenalty: true,
+                  });
+                }
               }
             }
           }, 600);
         }
       }
+    }
+
+    // After RESOLVE_NO_PLAY with AI God, auto-find correct card for invalid no-play
+    if (action.type === 'RESOLVE_NO_PLAY' && !action.valid && !action.correctCardId) {
+      const { aiGod } = get();
+      if (aiGod && previousState.noPlayDeclaration && previousState.mainLine.length > 0) {
+        const player = previousState.players.find(p => p.id === previousState.noPlayDeclaration!.playerId);
+        if (player) {
+          const lastCard = previousState.mainLine[previousState.mainLine.length - 1];
+          // Find a correct card in player's hand
+          const correctCard = player.hand.find(card => aiGod.judgeCard(lastCard, card));
+          if (correctCard) {
+            // Re-dispatch with correct card ID
+            setTimeout(() => {
+              get().dispatch({
+                type: 'RESOLVE_NO_PLAY',
+                valid: false,
+                correctCardId: correctCard.id,
+              });
+            }, 100);
+            return;
+          }
+        }
+      }
+    }
+
+    // After DECLARE_NO_PLAY, auto-resolve for AI God
+    if (action.type === 'DECLARE_NO_PLAY' && newState.phase === 'no_play_dispute') {
+      const { aiGod } = get();
+      if (aiGod && newState.noPlayDeclaration && newState.mainLine.length > 0) {
+        const player = newState.players.find(p => p.id === newState.noPlayDeclaration!.playerId);
+        if (player) {
+          const lastCard = newState.mainLine[newState.mainLine.length - 1];
+          // Check if any card in player's hand is valid
+          const hasValidPlay = player.hand.some(card => aiGod.judgeCard(lastCard, card));
+
+          setTimeout(() => {
+            if (hasValidPlay) {
+              // Invalid no-play - find the correct card
+              const correctCard = player.hand.find(card => aiGod.judgeCard(lastCard, card));
+              get().dispatch({
+                type: 'RESOLVE_NO_PLAY',
+                valid: false,
+                correctCardId: correctCard?.id,
+              });
+            } else {
+              // Valid no-play
+              get().dispatch({
+                type: 'RESOLVE_NO_PLAY',
+                valid: true,
+              });
+            }
+          }, 800);
+        }
+      }
+    }
+
+    // After RESOLVE_NO_PLAY, dispatch END_TURN to advance play
+    if (action.type === 'RESOLVE_NO_PLAY' && previousState.phase === 'no_play_dispute' && newState.phase === 'playing') {
+      setTimeout(() => {
+        get().dispatch({ type: 'END_TURN' });
+      }, 400);
     }
 
     // After JUDGE_CARD clears pendingPlay, auto-dispatch END_TURN
@@ -157,7 +277,7 @@ export const useGameStore = create<GameStore>()(
         // Dispatch END_TURN for:
         // 1. Human players (always need auto END_TURN)
         // 2. AI players when Prophet flow is active (executeAITurn doesn't schedule END_TURN in that case)
-        const prophetPlayer = newState.players.find(p => p.isProphet && p.type === 'human' && !p.isDealer);
+        const prophetPlayer = newState.players.find(p => p.isProphet && p.type === 'human' && !p.isGod);
         const wasInProphetFlow = prophetPlayer && previousState.pendingPlay.playerId !== prophetPlayer.id;
 
         if (currentPlayer?.type === 'human' || wasInProphetFlow) {
@@ -186,18 +306,33 @@ export const useGameStore = create<GameStore>()(
   },
 
   startNewGame: (configs: PlayerConfig[]) => {
-    // Find dealer config
-    const dealerConfig = configs.find(c => c.isDealer);
-    if (!dealerConfig) {
-      throw new Error('No dealer specified in player configs');
+    const { lastGodIndex, trueProphetIndex } = get();
+
+    // Determine next God index
+    // If there was a True Prophet (not overthrown), they become next God
+    // Otherwise, rotate through all players sequentially
+    const nextGodIndex = trueProphetIndex >= 0
+      ? trueProphetIndex
+      : (lastGodIndex + 1) % configs.length;
+
+    // Update configs to set the next player as God
+    const rotatedConfigs = configs.map((config, index) => ({
+      ...config,
+      isGod: index === nextGodIndex,
+    }));
+
+    // Find god config
+    const godConfig = rotatedConfigs[nextGodIndex];
+    if (!godConfig) {
+      throw new Error('No god found in player configs');
     }
 
-    // Create AI dealer only if dealer is AI type
-    const aiDealer = dealerConfig.type === 'ai' ? createAIDealer() : null;
+    // Create AI god only if god is AI type
+    const aiGod = godConfig.type === 'ai' ? createAIDealer() : null;
 
     // Generate player IDs from configs
-    const playerIds = configs.map((config, index) => {
-      if (config.isDealer) return 'dealer';
+    const playerIds = rotatedConfigs.map((config, index) => {
+      if (config.isGod) return 'god';
       return `player-${index}`;
     });
 
@@ -205,16 +340,16 @@ export const useGameStore = create<GameStore>()(
     let state = createInitialState();
     state = gameReducer(state, {
       type: 'INIT_GAME',
-      dealerId: 'dealer',
+      godId: 'god',
       playerIds,
     });
 
-    // Set dealer rule
-    if (aiDealer) {
+    // Set god rule
+    if (aiGod) {
       state = gameReducer(state, {
-        type: 'SET_DEALER_RULE',
-        rule: aiDealer.getRuleName(),
-        ruleFunction: aiDealer.getRuleFunction(),
+        type: 'SET_GOD_RULE',
+        rule: aiGod.getRuleName(),
+        ruleFunction: aiGod.getRuleFunction(),
       });
     }
 
@@ -222,7 +357,7 @@ export const useGameStore = create<GameStore>()(
     state = {
       ...state,
       players: state.players.map((p, index) => {
-        const config = configs[index];
+        const config = rotatedConfigs[index];
         return {
           ...p,
           name: config.name,
@@ -239,10 +374,12 @@ export const useGameStore = create<GameStore>()(
 
     set({
       state,
-      aiDealer,
+      aiGod,
       selectedCards: new Set(),
       showTransitionOverlay: false,
       transitionTargetName: '',
+      lastGodIndex: nextGodIndex, // Store current God index for next rotation
+      trueProphetIndex: -1, // Reset True Prophet for new game
     });
 
     // Advance to next actionable player
@@ -252,10 +389,10 @@ export const useGameStore = create<GameStore>()(
   },
 
   executeAITurn: () => {
-    const { state, aiDealer, dispatch } = get();
+    const { state, aiGod, dispatch } = get();
     const currentPlayer = state.players[state.currentPlayerIndex];
 
-    if (!currentPlayer || currentPlayer.type !== 'ai' || currentPlayer.isDealer) {
+    if (!currentPlayer || currentPlayer.type !== 'ai' || currentPlayer.isGod) {
       return;
     }
 
@@ -269,7 +406,7 @@ export const useGameStore = create<GameStore>()(
     }
 
     // Check if a human Prophet needs to predict before judgment
-    const prophetPlayer = state.players.find(p => p.isProphet && p.type === 'human' && !p.isDealer);
+    const prophetPlayer = state.players.find(p => p.isProphet && p.type === 'human' && !p.isGod);
 
     // Dispatch PLAY_CARD through reducer
     setTimeout(() => {
@@ -295,9 +432,9 @@ export const useGameStore = create<GameStore>()(
           // Find the card in pendingPlay
           const card = currentState.pendingPlay?.cards.find(c => c.id === cardId);
 
-          if (card && aiDealer && currentState.mainLine.length > 0) {
+          if (card && aiGod && currentState.mainLine.length > 0) {
             const lastCard = currentState.mainLine[currentState.mainLine.length - 1];
-            const isCorrect = aiDealer.judgeCard(lastCard, card);
+            const isCorrect = aiGod.judgeCard(lastCard, card);
 
             // Play judgment sound
             setTimeout(() => {
@@ -334,13 +471,13 @@ export const useGameStore = create<GameStore>()(
     }
 
     // If current player is AI, execute their turn
-    if (currentPlayer.type === 'ai' && !currentPlayer.isDealer) {
+    if (currentPlayer.type === 'ai' && !currentPlayer.isGod) {
       setTimeout(() => {
         get().executeAITurn();
       }, 800);
     }
     // If current player is human (non-dealer), show transition overlay
-    else if (currentPlayer.type === 'human' && !currentPlayer.isDealer) {
+    else if (currentPlayer.type === 'human' && !currentPlayer.isGod) {
       set({
         showTransitionOverlay: true,
         transitionTargetName: currentPlayer.name,
@@ -368,7 +505,7 @@ export const useGameStore = create<GameStore>()(
   makeProphetPrediction: (prediction: boolean) => {
     const { state, dispatch } = get();
     // Find the actual Prophet player (not the current turn player)
-    const prophetPlayer = state.players.find(p => p.isProphet && !p.isDealer);
+    const prophetPlayer = state.players.find(p => p.isProphet && !p.isGod);
 
     if (!prophetPlayer || !state.pendingPlay) {
       return;
@@ -386,14 +523,47 @@ export const useGameStore = create<GameStore>()(
     }
   },
 
+  resolveNoPlayAsHumanGod: (valid: boolean) => {
+    const { state, dispatch } = get();
+
+    if (!state.noPlayDeclaration || !state.godRuleFunction || state.mainLine.length === 0) {
+      return;
+    }
+
+    const player = state.players.find(p => p.id === state.noPlayDeclaration!.playerId);
+    if (!player) {
+      return;
+    }
+
+    if (valid) {
+      // Valid no-play - player had no valid cards
+      dispatch({
+        type: 'RESOLVE_NO_PLAY',
+        valid: true,
+      });
+    } else {
+      // Invalid no-play - find a correct card in player's hand
+      const lastCard = state.mainLine[state.mainLine.length - 1];
+      const correctCard = player.hand.find(card => state.godRuleFunction!(lastCard, card));
+
+      dispatch({
+        type: 'RESOLVE_NO_PLAY',
+        valid: false,
+        correctCardId: correctCard?.id,
+      });
+    }
+  },
+
   resetGame: () => {
     set({
       state: createInitialState(),
       selectedCards: new Set(),
-      aiDealer: null,
+      aiGod: null,
       showTransitionOverlay: false,
       transitionTargetName: '',
       hasSavedGame: false,
+      lastGodIndex: -1, // Reset God rotation
+      trueProphetIndex: -1, // Reset True Prophet
     });
   },
 
@@ -403,23 +573,25 @@ export const useGameStore = create<GameStore>()(
       if (!saved) return;
 
       const parsed = JSON.parse(saved);
-      const { state: savedState, dealerRuleName } = parsed;
+      const { state: savedState, godRuleName, lastGodIndex, trueProphetIndex } = parsed;
 
       // Reconstruct AI dealer if it exists
-      let aiDealer = null;
-      if (dealerRuleName) {
-        aiDealer = createAIDealer();
+      let aiGod = null;
+      if (godRuleName) {
+        aiGod = createAIDealer();
         // Note: We can't perfectly restore the dealer's exact rule,
         // but we create a new one for consistency
       }
 
       set({
         state: savedState,
-        aiDealer,
+        aiGod,
         selectedCards: new Set(),
         showTransitionOverlay: false,
         transitionTargetName: '',
         hasSavedGame: true,
+        lastGodIndex: lastGodIndex ?? -1,
+        trueProphetIndex: trueProphetIndex ?? -1,
       });
     } catch (err) {
       console.error('Failed to load saved game:', err);
@@ -451,14 +623,16 @@ export const useGameStore = create<GameStore>()(
       name: SAVE_KEY,
       partialize: (state) => ({
         state: state.state,
-        dealerRuleName: state.aiDealer?.getRuleName() || null,
+        godRuleName: state.aiGod?.getRuleName() || null,
         hasSavedGame: state.state.phase !== 'setup',
+        lastGodIndex: state.lastGodIndex,
+        trueProphetIndex: state.trueProphetIndex,
       }),
       onRehydrateStorage: () => (state) => {
         // After rehydration, reconstruct AIDealer if needed
-        if (state?.state && state.state.dealerRule) {
+        if (state?.state && state.state.godRule) {
           const dealer = createAIDealer();
-          state.aiDealer = dealer;
+          state.aiGod = dealer;
         }
       },
     }

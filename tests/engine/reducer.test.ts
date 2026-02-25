@@ -13,7 +13,7 @@ describe('gameReducer', () => {
     it('creates players and shuffled deck', () => {
       const state = gameReducer(initialState, {
         type: 'INIT_GAME',
-        dealerId: 'dealer',
+        godId: 'dealer',
         playerIds: ['dealer', 'player1', 'player2'],
       });
 
@@ -26,48 +26,48 @@ describe('gameReducer', () => {
     it('assigns dealer role correctly', () => {
       const state = gameReducer(initialState, {
         type: 'INIT_GAME',
-        dealerId: 'dealer',
+        godId: 'dealer',
         playerIds: ['dealer', 'player1'],
       });
 
       const dealer = state.players.find(p => p.id === 'dealer');
       const player = state.players.find(p => p.id === 'player1');
 
-      expect(dealer?.isDealer).toBe(true);
-      expect(player?.isDealer).toBe(false);
+      expect(dealer?.isGod).toBe(true);
+      expect(player?.isGod).toBe(false);
     });
 
     it('sets optional dealer rule', () => {
       const state = gameReducer(initialState, {
         type: 'INIT_GAME',
-        dealerId: 'dealer',
+        godId: 'dealer',
         playerIds: ['dealer', 'player1'],
-        dealerRule: 'alternating-colors',
+        godRule: 'alternating-colors',
       });
 
-      expect(state.dealerRule).toBe('alternating-colors');
+      expect(state.godRule).toBe('alternating-colors');
     });
   });
 
-  describe('SET_DEALER_RULE', () => {
+  describe('SET_GOD_RULE', () => {
     it('sets the dealer rule', () => {
       const state = gameReducer(initialState, {
-        type: 'SET_DEALER_RULE',
+        type: 'SET_GOD_RULE',
         rule: 'same-suit-or-same-rank',
       });
 
-      expect(state.dealerRule).toBe('same-suit-or-same-rank');
+      expect(state.godRule).toBe('same-suit-or-same-rank');
     });
 
     it('sets the rule function', () => {
       const ruleFn = (lastCard: any, newCard: any) => true;
       const state = gameReducer(initialState, {
-        type: 'SET_DEALER_RULE',
+        type: 'SET_GOD_RULE',
         rule: 'custom',
         ruleFunction: ruleFn,
       });
 
-      expect(state.dealerRuleFunction).toBe(ruleFn);
+      expect(state.godRuleFunction).toBe(ruleFn);
     });
   });
 
@@ -75,7 +75,7 @@ describe('gameReducer', () => {
     beforeEach(() => {
       initialState = gameReducer(initialState, {
         type: 'INIT_GAME',
-        dealerId: 'dealer',
+        godId: 'dealer',
         playerIds: ['dealer', 'player1', 'player2'],
       });
     });
@@ -86,7 +86,7 @@ describe('gameReducer', () => {
         count: 7,
       });
 
-      const dealer = state.players.find(p => p.isDealer);
+      const dealer = state.players.find(p => p.isGod);
       const player1 = state.players.find(p => p.id === 'player1');
       const player2 = state.players.find(p => p.id === 'player2');
 
@@ -103,7 +103,7 @@ describe('gameReducer', () => {
 
       expect(state.mainLine).toHaveLength(1);
       expect(state.mainLine[0].correct).toBe(true);
-      expect(state.mainLine[0].playedBy).toBe('dealer');
+      expect(state.mainLine[0].playedBy).toBe('god');
     });
 
     it('reduces deck size', () => {
@@ -130,7 +130,7 @@ describe('gameReducer', () => {
     beforeEach(() => {
       initialState = gameReducer(initialState, {
         type: 'INIT_GAME',
-        dealerId: 'dealer',
+        godId: 'dealer',
         playerIds: ['dealer', 'player1', 'player2'],
       });
     });
@@ -160,7 +160,7 @@ describe('gameReducer', () => {
     beforeEach(() => {
       initialState = gameReducer(initialState, {
         type: 'INIT_GAME',
-        dealerId: 'dealer',
+        godId: 'dealer',
         playerIds: ['dealer', 'player1', 'player2'],
       });
       initialState = gameReducer(initialState, {
@@ -184,7 +184,7 @@ describe('gameReducer', () => {
     beforeEach(() => {
       initialState = gameReducer(initialState, {
         type: 'INIT_GAME',
-        dealerId: 'dealer',
+        godId: 'dealer',
         playerIds: ['dealer', 'player1', 'player2'],
       });
       initialState = gameReducer(initialState, {
@@ -218,7 +218,7 @@ describe('gameReducer', () => {
     beforeEach(() => {
       initialState = gameReducer(initialState, {
         type: 'INIT_GAME',
-        dealerId: 'dealer',
+        godId: 'dealer',
         playerIds: ['dealer', 'player1', 'player2'],
       });
       initialState = gameReducer(initialState, {
@@ -246,7 +246,7 @@ describe('gameReducer', () => {
     beforeEach(() => {
       initialState = gameReducer(initialState, {
         type: 'INIT_GAME',
-        dealerId: 'dealer',
+        godId: 'dealer',
         playerIds: ['dealer', 'player1', 'player2'],
       });
       initialState = gameReducer(initialState, {
@@ -259,7 +259,7 @@ describe('gameReducer', () => {
       });
     });
 
-    it('draws card for valid no-play', () => {
+    it('deals new hand with 4 fewer cards for valid no-play', () => {
       const deckSizeBefore = initialState.deck.length;
       const state = gameReducer(initialState, {
         type: 'RESOLVE_NO_PLAY',
@@ -267,18 +267,25 @@ describe('gameReducer', () => {
       });
 
       const player = state.players.find(p => p.id === 'player1');
-      expect(player?.hand).toHaveLength(8); // 7 + 1
-      expect(state.deck).toHaveLength(deckSizeBefore - 1);
+      expect(player?.hand).toHaveLength(3); // 7 - 4
+      expect(state.deck).toHaveLength(deckSizeBefore - 3);
     });
 
-    it('penalizes invalid no-play', () => {
+    it('plays correct card and deals 5 penalty cards for invalid no-play', () => {
+      const playerBefore = initialState.players.find(p => p.id === 'player1');
+      const correctCardId = playerBefore?.hand[0].id;
+
       const state = gameReducer(initialState, {
         type: 'RESOLVE_NO_PLAY',
         valid: false,
+        correctCardId,
       });
 
       const player = state.players.find(p => p.id === 'player1');
-      expect(player?.score).toBe(-5);
+      // Hand should be: original 7 - 1 correct card + 5 penalty = 11 cards
+      expect(player?.hand).toHaveLength(11);
+      // Correct card should be on mainline
+      expect(state.mainLine.length).toBeGreaterThan(initialState.mainLine.length);
     });
 
     it('clears declaration and returns to playing', () => {
@@ -292,51 +299,12 @@ describe('gameReducer', () => {
     });
   });
 
-  describe('ADD_SUDDEN_DEATH_MARKER', () => {
-    beforeEach(() => {
-      initialState = gameReducer(initialState, {
-        type: 'INIT_GAME',
-        dealerId: 'dealer',
-        playerIds: ['dealer', 'player1'],
-      });
-    });
-
-    it('increments sudden death markers', () => {
-      const state = gameReducer(initialState, {
-        type: 'ADD_SUDDEN_DEATH_MARKER',
-        playerId: 'player1',
-      });
-
-      const player = state.players.find(p => p.id === 'player1');
-      expect(player?.suddenDeathMarkers).toBe(1);
-    });
-
-    it('expels player at 3 markers', () => {
-      let state = initialState;
-      state = gameReducer(state, {
-        type: 'ADD_SUDDEN_DEATH_MARKER',
-        playerId: 'player1',
-      });
-      state = gameReducer(state, {
-        type: 'ADD_SUDDEN_DEATH_MARKER',
-        playerId: 'player1',
-      });
-      state = gameReducer(state, {
-        type: 'ADD_SUDDEN_DEATH_MARKER',
-        playerId: 'player1',
-      });
-
-      const player = state.players.find(p => p.id === 'player1');
-      expect(player?.suddenDeathMarkers).toBe(3);
-      expect(player?.isExpelled).toBe(true);
-    });
-  });
 
   describe('EXPEL_PLAYER', () => {
     beforeEach(() => {
       initialState = gameReducer(initialState, {
         type: 'INIT_GAME',
-        dealerId: 'dealer',
+        godId: 'dealer',
         playerIds: ['dealer', 'player1'],
       });
     });
@@ -356,7 +324,7 @@ describe('gameReducer', () => {
     beforeEach(() => {
       initialState = gameReducer(initialState, {
         type: 'INIT_GAME',
-        dealerId: 'dealer',
+        godId: 'dealer',
         playerIds: ['dealer', 'player1', 'player2'],
       });
       initialState = gameReducer(initialState, {
@@ -418,7 +386,7 @@ describe('gameReducer', () => {
     beforeEach(() => {
       initialState = gameReducer(initialState, {
         type: 'INIT_GAME',
-        dealerId: 'dealer',
+        godId: 'dealer',
         playerIds: ['dealer', 'player1', 'player2'],
       });
       initialState = gameReducer(initialState, {
@@ -475,7 +443,7 @@ describe('gameReducer', () => {
 
     it('stays in playing phase when dealer rule function exists', () => {
       const stateWithRuleFunction = gameReducer(initialState, {
-        type: 'SET_DEALER_RULE',
+        type: 'SET_GOD_RULE',
         rule: 'test-rule',
         ruleFunction: () => true,
       });
@@ -512,7 +480,7 @@ describe('gameReducer', () => {
     beforeEach(() => {
       initialState = gameReducer(initialState, {
         type: 'INIT_GAME',
-        dealerId: 'dealer',
+        godId: 'dealer',
         playerIds: ['dealer', 'player1', 'player2'],
       });
       initialState = gameReducer(initialState, {
@@ -643,13 +611,130 @@ describe('gameReducer', () => {
       expect(playedCard.prophetPrediction?.predictedBy).toBe('player2');
       expect(playedCard.prophetPrediction?.prediction).toBe(true);
     });
+
+    it('deals penalty cards for incorrect play by default', () => {
+      const player = initialState.players.find(p => p.id === 'player1')!;
+      const initialHandSize = player.hand.length;
+      const cardId = player.hand[0].id;
+
+      let state = gameReducer(initialState, {
+        type: 'PLAY_CARD',
+        playerId: 'player1',
+        cardIds: [cardId],
+      });
+
+      state = gameReducer(state, {
+        type: 'JUDGE_CARD',
+        cardId,
+        correct: false,
+      });
+
+      const updatedPlayer = state.players.find(p => p.id === 'player1')!;
+      // Player should have initial hand minus played card plus 2 penalty cards
+      expect(updatedPlayer.hand.length).toBe(initialHandSize + 1); // -1 played, +2 penalty = +1 net
+    });
+
+    it('skips penalty cards when skipPenalty is true', () => {
+      const player = initialState.players.find(p => p.id === 'player1')!;
+      const initialHandSize = player.hand.length;
+      const cardId = player.hand[0].id;
+
+      let state = gameReducer(initialState, {
+        type: 'PLAY_CARD',
+        playerId: 'player1',
+        cardIds: [cardId],
+      });
+
+      state = gameReducer(state, {
+        type: 'JUDGE_CARD',
+        cardId,
+        correct: false,
+        skipPenalty: true,
+      });
+
+      const updatedPlayer = state.players.find(p => p.id === 'player1')!;
+      // Player should have initial hand minus played card, no penalty cards
+      expect(updatedPlayer.hand.length).toBe(initialHandSize - 1);
+    });
+
+    it('still places card in branch when skipPenalty is true', () => {
+      const player = initialState.players.find(p => p.id === 'player1')!;
+      const cardId = player.hand[0].id;
+
+      let state = gameReducer(initialState, {
+        type: 'PLAY_CARD',
+        playerId: 'player1',
+        cardIds: [cardId],
+      });
+
+      state = gameReducer(state, {
+        type: 'JUDGE_CARD',
+        cardId,
+        correct: false,
+        skipPenalty: true,
+      });
+
+      const lastCard = state.mainLine[state.mainLine.length - 1];
+      expect(lastCard.branches).toBeDefined();
+      expect(lastCard.branches).toHaveLength(1);
+      expect(lastCard.branches![0].correct).toBe(false);
+    });
+
+    it('skips expulsion during sudden death when skipPenalty is true', () => {
+      const player = initialState.players.find(p => p.id === 'player1')!;
+      const cardId = player.hand[0].id;
+
+      // Set up sudden death state (120+ cards played)
+      initialState.totalCardsPlayed = 120;
+
+      let state = gameReducer(initialState, {
+        type: 'PLAY_CARD',
+        playerId: 'player1',
+        cardIds: [cardId],
+      });
+
+      state = gameReducer(state, {
+        type: 'JUDGE_CARD',
+        cardId,
+        correct: false,
+        skipPenalty: true,
+      });
+
+      const updatedPlayer = state.players.find(p => p.id === 'player1')!;
+      // Player should NOT be expelled despite sudden death + wrong play
+      expect(updatedPlayer.isExpelled).toBe(false);
+    });
+
+    it('expels player during sudden death when skipPenalty is omitted', () => {
+      const player = initialState.players.find(p => p.id === 'player1')!;
+      const cardId = player.hand[0].id;
+
+      // Set up sudden death state (120+ cards played)
+      initialState.totalCardsPlayed = 120;
+
+      let state = gameReducer(initialState, {
+        type: 'PLAY_CARD',
+        playerId: 'player1',
+        cardIds: [cardId],
+      });
+
+      state = gameReducer(state, {
+        type: 'JUDGE_CARD',
+        cardId,
+        correct: false,
+      });
+
+      const updatedPlayer = state.players.find(p => p.id === 'player1')!;
+      // Player SHOULD be expelled (sudden death + wrong play + no skipPenalty)
+      expect(updatedPlayer.isExpelled).toBe(true);
+    });
   });
 
   describe('PROPHET_PREDICT with pendingPlay', () => {
     beforeEach(() => {
       initialState = gameReducer(initialState, {
         type: 'INIT_GAME',
-        dealerId: 'dealer',
+        godId: 'dealer',
         playerIds: ['dealer', 'player1', 'player2'],
       });
       initialState = gameReducer(initialState, {

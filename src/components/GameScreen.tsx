@@ -10,10 +10,12 @@ import { GameOverScreen } from './GameOverScreen';
 import { ProphetPredictionPanel } from './ProphetPredictionPanel';
 import { TurnTransitionOverlay } from './TurnTransitionOverlay';
 import { DealerControlPanel } from './DealerControlPanel';
+import { NoPlayDisputePanel } from './NoPlayDisputePanel';
 import { Scoreboard } from './Scoreboard';
 import { HelpOverlay } from './HelpOverlay';
 import { SettingsPanel } from './SettingsPanel';
 import { sounds } from '../audio/sounds';
+import { canDeclareProphet } from '../engine/validation';
 
 interface GameScreenProps {
   onReturnToMenu?: () => void;
@@ -31,15 +33,18 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
     confirmTurnTransition,
     judgeCardAsHumanDealer,
     makeProphetPrediction,
+    resolveNoPlayAsHumanGod,
     resetGame,
     getActiveLocalPlayer,
     getCurrentPlayer,
+    aiGod,
   } = useGameStore();
 
   const [handCollapsed, setHandCollapsed] = useState(false);
   const [scoreboardCollapsed, setScoreboardCollapsed] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showCheat, setShowCheat] = useState(false);
 
   // Get the active local player (current player if human)
   const activePlayer = getActiveLocalPlayer();
@@ -47,7 +52,10 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
   const isLocalPlayerTurn = !!activePlayer;
 
   // Find the local human Prophet player (may not be the current turn player)
-  const prophetPlayer = state.players.find(p => p.isProphet && p.type === 'human' && !p.isDealer);
+  const prophetPlayer = state.players.find(p => p.isProphet && p.type === 'human' && !p.isGod);
+
+  // Check if active player can declare prophet
+  const canActivePlayerDeclareProphet = activePlayer ? canDeclareProphet(state, activePlayer.id) : false;
 
   const handleCardClick = (cardId: string) => {
     toggleCardSelection(cardId);
@@ -107,13 +115,25 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
     judgeCardAsHumanDealer(cardId, correct);
   };
 
+  const handleAcceptNoPlay = () => {
+    resolveNoPlayAsHumanGod(true);
+  };
+
+  const handleRejectNoPlay = () => {
+    resolveNoPlayAsHumanGod(false);
+  };
+
   // Scores are now displayed in Scoreboard component
 
   // Show Prophet prediction panel if local human Prophet exists and another player's cards are pending
   const showProphetPanel = !!prophetPlayer && !!state.pendingPlay && state.pendingPlay.cards.length > 0 && state.pendingPlay.playerId !== prophetPlayer.id && state.phase !== 'game_over';
 
   // Show Dealer control panel if local player is dealer and a card is awaiting judgment
-  const showDealerPanel = currentPlayer?.isDealer && currentPlayer.type === 'human' && state.phase === 'awaiting_judgment' && state.pendingPlay && state.pendingPlay.cards.length > 0;
+  const showDealerPanel = currentPlayer?.isGod && currentPlayer.type === 'human' && state.phase === 'awaiting_judgment' && state.pendingPlay && state.pendingPlay.cards.length > 0;
+
+  // Show No-Play dispute panel when in no_play_dispute phase
+  const showNoPlayPanel = state.phase === 'no_play_dispute' && state.noPlayDeclaration;
+  const isAIGod = !!aiGod;
 
   // Extract IDs for use in JSX (avoids TypeScript narrowing issues)
   const prophetId = prophetPlayer?.id;
@@ -174,13 +194,36 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
                   marginTop: '0.25rem',
                 }}
               >
-                👑 Prophet Predictions: {state.prophetsCorrectCount}/3
+                👑 Prophet: {state.prophetCorrectCalls} correct call{state.prophetCorrectCalls !== 1 ? 's' : ''}
               </p>
             )}
           </div>
 
           {/* Right: Controls */}
           <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => setShowCheat(!showCheat)}
+              style={{
+                padding: '0.5rem 1rem',
+                background: showCheat ? 'rgba(255, 215, 0, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+                border: `2px solid ${showCheat ? 'var(--accent-gold)' : 'rgba(255, 255, 255, 0.2)'}`,
+                borderRadius: '8px',
+                color: showCheat ? 'var(--accent-gold)' : 'var(--text-light)',
+                fontSize: '0.6rem',
+                cursor: 'pointer',
+                fontFamily: 'Press Start 2P, cursive',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent-gold)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = showCheat ? 'var(--accent-gold)' : 'rgba(255, 255, 255, 0.2)';
+              }}
+              title="Toggle rule visibility (cheat mode)"
+            >
+              👁
+            </button>
             <button
               onClick={() => setShowHelp(true)}
               style={{
@@ -230,8 +273,51 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
 
         {/* MainLine Board Area - Maximized */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <MainLineBoard mainLine={state.mainLine} />
+          <MainLineBoard mainLine={state.mainLine} prophetMarkerIndex={state.prophetMarkerIndex} totalCardsPlayed={state.totalCardsPlayed} />
         </div>
+
+        {/* Cheat Mode - Show Rule */}
+        {showCheat && state.godRule && (
+          <div
+            style={{
+              padding: '1rem',
+              background: 'rgba(255, 215, 0, 0.2)',
+              border: '2px solid var(--accent-gold)',
+              borderRadius: '8px',
+              textAlign: 'center',
+              fontSize: '0.6rem',
+              color: 'var(--text-light)',
+              marginBottom: '1rem',
+            }}
+          >
+            <span style={{ color: 'var(--accent-gold)', fontWeight: 'bold' }}>🔍 CHEAT MODE:</span>
+            {' '}
+            <span style={{ color: 'var(--text-light)' }}>{state.godRule}</span>
+          </div>
+        )}
+
+        {/* Prophet Status Bar (when not predicting) */}
+        {prophetPlayer && !showProphetPanel && state.phase !== 'game_over' && (
+          <div
+            style={{
+              padding: '1rem',
+              background: 'rgba(138, 43, 226, 0.5)',
+              border: '2px solid var(--accent-gold)',
+              borderRadius: '8px',
+              textAlign: 'center',
+              fontSize: '0.6rem',
+              color: 'var(--text-light)',
+              marginBottom: '1rem',
+            }}
+          >
+            <span style={{ color: 'var(--accent-gold)', fontWeight: 'bold' }}>👑 You are the Prophet.</span>
+            {' '}Watch other players' plays and call them right or wrong.
+            {' '}
+            <span style={{ color: 'var(--text-dim)' }}>
+              (Correct calls: {state.prophetCorrectCalls})
+            </span>
+          </div>
+        )}
 
         {/* Bottom Section - Player Hand (Full Width) */}
         {activePlayer && (
@@ -248,6 +334,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
             isProphet={activePlayer.isProphet}
             isHumanTurn={isLocalPlayerTurn}
             gamePhase={state.phase}
+            canDeclareProphet={canActivePlayerDeclareProphet}
           />
         )}
       </div>
@@ -312,6 +399,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
             <Scoreboard
               players={state.players}
               currentPlayerIndex={state.currentPlayerIndex}
+              gameState={state}
             />
 
             <div
@@ -372,6 +460,16 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
           pendingCard={state.pendingPlay.cards[0]}
           playerName={state.pendingPlay.playerId}
           onJudge={handleJudgeCard}
+        />
+      )}
+
+      {/* No-Play Dispute Panel */}
+      {showNoPlayPanel && (
+        <NoPlayDisputePanel
+          state={state}
+          onAccept={handleAcceptNoPlay}
+          onReject={handleRejectNoPlay}
+          isAIGod={isAIGod}
         />
       )}
 

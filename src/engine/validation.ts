@@ -2,7 +2,21 @@
  * Turn validation logic for New Eleusis
  */
 
-import type { GameState, Player } from './types';
+import type { GameState, PlayedCard } from './types';
+
+/**
+ * Helper function to flatten all played cards (main line + branches)
+ */
+function flattenPlayedCards(mainLine: PlayedCard[]): PlayedCard[] {
+  const all: PlayedCard[] = [];
+  for (const card of mainLine) {
+    all.push(card);
+    if (card.branches) {
+      all.push(...card.branches);
+    }
+  }
+  return all;
+}
 
 /**
  * Check if a player can play a card
@@ -30,7 +44,7 @@ export function canPlayCard(state: GameState, playerId: string): boolean {
   }
 
   // Player cannot be the dealer
-  if (currentPlayer.isDealer) {
+  if (currentPlayer.isGod) {
     return false;
   }
 
@@ -62,12 +76,31 @@ export function canDeclareProphet(state: GameState, playerId: string): boolean {
   }
 
   // Player cannot be the dealer
-  if (player.isDealer) {
+  if (player.isGod) {
     return false;
   }
 
   // Main line must have at least one card
   if (state.mainLine.length === 0) {
+    return false;
+  }
+
+  // Check no other player currently has isProphet === true
+  const existingProphet = state.players.find(p => p.isProphet && p.id !== playerId);
+  if (existingProphet) {
+    return false;
+  }
+
+  // Player must not have been prophet before
+  if (player.wasProphet) {
+    return false;
+  }
+
+  // Must have at least 2 active (non-expelled, non-God) players besides the declaring player
+  const otherActivePlayers = state.players.filter(
+    p => p.id !== playerId && !p.isExpelled && !p.isGod
+  );
+  if (otherActivePlayers.length < 2) {
     return false;
   }
 
@@ -128,36 +161,47 @@ export function validatePlay(
 }
 
 /**
- * Check if a player should receive a sudden death marker
+ * Check if the game is in sudden death period
  */
-export function shouldReceiveSuddenDeathMarker(player: Player, handThreshold: number = 25): boolean {
-  return player.hand.length >= handThreshold && !player.isExpelled;
+export function isSuddenDeath(state: GameState): boolean {
+  if (state.prophetMarkerIndex !== undefined) {
+    // If prophet exists: sudden death when cards played since prophetMarkerIndex >= 30
+    const cardsAfterMarker = state.mainLine.slice(state.prophetMarkerIndex + 1);
+    const allCardsAfterMarker = flattenPlayedCards(cardsAfterMarker);
+    return allCardsAfterMarker.length >= 30;
+  } else {
+    // Otherwise: sudden death when totalCardsPlayed >= 40
+    return state.totalCardsPlayed >= 40;
+  }
 }
 
 /**
- * Check if a player should be expelled
+ * Check if a player should be expelled during sudden death
  */
-export function shouldBeExpelled(player: Player): boolean {
-  return player.suddenDeathMarkers >= 3;
+export function shouldExpelPlayer(state: GameState): boolean {
+  return isSuddenDeath(state);
 }
 
 /**
  * Check if game should end
  */
 export function shouldGameEnd(state: GameState): boolean {
-  // Deck is empty
-  if (state.deck.length === 0) {
-    return true;
-  }
-
-  // All non-dealer players are expelled
-  const activePlayers = state.players.filter(p => !p.isDealer && !p.isExpelled);
+  // All non-God players are expelled
+  const activePlayers = state.players.filter(p => !p.isGod && !p.isExpelled);
   if (activePlayers.length === 0) {
     return true;
   }
 
-  // Prophet has been correct 3 times in a row (dealer overthrown)
-  if (state.prophetsCorrectCount >= 3) {
+  // Any active, non-prophet player's hand reaches 0 cards → end round
+  const playerWithEmptyHand = state.players.find(
+    p => !p.isGod && !p.isProphet && !p.isExpelled && p.hand.length === 0
+  );
+  if (playerWithEmptyHand) {
+    return true;
+  }
+
+  // Deck is empty (practical safety net)
+  if (state.deck.length === 0) {
     return true;
   }
 
@@ -189,7 +233,7 @@ export function canDisputeNoPlay(state: GameState, playerId: string): boolean {
   }
 
   // Cannot dispute if dealer
-  if (player.isDealer) {
+  if (player.isGod) {
     return false;
   }
 

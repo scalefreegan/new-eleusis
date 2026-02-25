@@ -128,6 +128,7 @@ state = gameReducer(state, {
   type: 'JUDGE_CARD',
   cardId: newCard.id,
   correct,
+  skipPenalty: false, // Set to true when Prophet is overthrown to skip scientist penalty
 });
 
 // End turn
@@ -143,18 +144,18 @@ All possible actions:
 ```typescript
 type GameAction =
   | { type: 'INIT_GAME'; dealerId: string; playerIds: string[]; dealerRule?: string }
-  | { type: 'SET_DEALER_RULE'; rule: string; ruleFunction?: (lastCard: Card, newCard: Card) => boolean }
+  | { type: 'SET_GOD_RULE'; rule: string; ruleFunction?: (lastCard: Card, newCard: Card) => boolean }
   | { type: 'DEAL_CARDS'; count: number }
   | { type: 'PLAY_CARD'; playerId: string; cardIds: string[] }
-  | { type: 'JUDGE_CARD'; cardId: string; correct: boolean }
+  | { type: 'JUDGE_CARD'; cardId: string; correct: boolean; skipPenalty?: boolean }
   | { type: 'DECLARE_PROPHET'; playerId: string }
   | { type: 'RESIGN_PROPHET'; playerId: string }
   | { type: 'PROPHET_PREDICT'; playerId: string; cardId: string; prediction: boolean }
   | { type: 'PROPHET_VERIFY'; cardId: string; dealerJudgment: boolean }
+  | { type: 'OVERTHROW_PROPHET'; prophetId: string }
   | { type: 'DECLARE_NO_PLAY'; playerId: string }
   | { type: 'DISPUTE_NO_PLAY'; disputerId: string }
-  | { type: 'RESOLVE_NO_PLAY'; valid: boolean }
-  | { type: 'ADD_SUDDEN_DEATH_MARKER'; playerId: string }
+  | { type: 'RESOLVE_NO_PLAY'; valid: boolean; correctCardId?: string }
   | { type: 'EXPEL_PLAYER'; playerId: string }
   | { type: 'END_TURN' }
   | { type: 'END_GAME' }

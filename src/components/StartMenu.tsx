@@ -18,14 +18,14 @@ interface StartMenuProps {
 export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const { hasSavedGame, loadSavedGame } = useGameStore();
+  const { hasSavedGame, loadSavedGame, lastGodIndex, trueProphetIndex } = useGameStore();
 
   // Default: AI dealer, 1 human player, 2 AI players
   const [playerConfigs, setPlayerConfigs] = useState<PlayerConfig[]>([
-    { name: 'Dealer', type: 'ai', isDealer: true },
-    { name: 'You', type: 'human', isDealer: false },
-    { name: 'AI Player 1', type: 'ai', isDealer: false },
-    { name: 'AI Player 2', type: 'ai', isDealer: false },
+    { name: 'Dealer', type: 'ai', isGod: true },
+    { name: 'You', type: 'human', isGod: false },
+    { name: 'AI Player 1', type: 'ai', isGod: false },
+    { name: 'AI Player 2', type: 'ai', isGod: false },
   ]);
 
   const [dealerRule, setDealerRule] = useState('');
@@ -49,7 +49,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
     const aiCount = playerList.filter(p => p.type === 'ai').length;
     setPlayerConfigs([
       ...playerConfigs,
-      { name: `AI Player ${aiCount + 1}`, type: 'ai', isDealer: false },
+      { name: `AI Player ${aiCount + 1}`, type: 'ai', isGod: false },
     ]);
   };
 
@@ -64,28 +64,28 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
       case 'solo':
         // 1 human vs AI (current behavior)
         setPlayerConfigs([
-          { name: 'Dealer', type: 'ai', isDealer: true },
-          { name: 'You', type: 'human', isDealer: false },
-          { name: 'AI Player 1', type: 'ai', isDealer: false },
-          { name: 'AI Player 2', type: 'ai', isDealer: false },
+          { name: 'Dealer', type: 'ai', isGod: true },
+          { name: 'You', type: 'human', isGod: false },
+          { name: 'AI Player 1', type: 'ai', isGod: false },
+          { name: 'AI Player 2', type: 'ai', isGod: false },
         ]);
         break;
       case 'duo':
         // 2 humans
         setPlayerConfigs([
-          { name: 'Dealer', type: 'ai', isDealer: true },
-          { name: 'Player 1', type: 'human', isDealer: false },
-          { name: 'Player 2', type: 'human', isDealer: false },
+          { name: 'Dealer', type: 'ai', isGod: true },
+          { name: 'Player 1', type: 'human', isGod: false },
+          { name: 'Player 2', type: 'human', isGod: false },
         ]);
         break;
       case 'party':
         // 4 players
         setPlayerConfigs([
-          { name: 'Dealer', type: 'ai', isDealer: true },
-          { name: 'Player 1', type: 'human', isDealer: false },
-          { name: 'Player 2', type: 'human', isDealer: false },
-          { name: 'Player 3', type: 'human', isDealer: false },
-          { name: 'Player 4', type: 'human', isDealer: false },
+          { name: 'Dealer', type: 'ai', isGod: true },
+          { name: 'Player 1', type: 'human', isGod: false },
+          { name: 'Player 2', type: 'human', isGod: false },
+          { name: 'Player 3', type: 'human', isGod: false },
+          { name: 'Player 4', type: 'human', isGod: false },
         ]);
         break;
     }
@@ -95,6 +95,14 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
     // For now, we don't handle custom dealer rules (that's for future implementation)
     onStartGame(playerConfigs);
   };
+
+  // Calculate which player will be God next
+  // True Prophet takes precedence over rotation
+  const nextGodIndex = trueProphetIndex >= 0
+    ? trueProphetIndex
+    : (lastGodIndex + 1) % playerConfigs.length;
+
+  const isTrueProphetGod = trueProphetIndex >= 0;
 
   const handleContinue = () => {
     loadSavedGame();
@@ -218,7 +226,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
           </div>
         </div>
 
-        {/* Dealer Setup */}
+        {/* God Setup */}
         <div style={{ marginBottom: '1.5rem' }}>
           <label
             style={{
@@ -228,14 +236,17 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
               marginBottom: '0.75rem',
             }}
           >
-            DEALER
+            GOD {isTrueProphetGod
+              ? <span style={{ fontSize: '0.45rem', color: 'var(--accent-gold)' }}>(True Prophet!)</span>
+              : lastGodIndex >= 0 && <span style={{ fontSize: '0.45rem', color: 'var(--text-dim)' }}>(rotates each game)</span>
+            }
           </label>
           <div
             style={{
               padding: '1rem',
-              background: 'rgba(0, 0, 0, 0.3)',
+              background: nextGodIndex === 0 ? 'rgba(255, 215, 0, 0.1)' : 'rgba(0, 0, 0, 0.3)',
               borderRadius: '8px',
-              border: '1px solid var(--accent-gold)',
+              border: nextGodIndex === 0 ? '2px solid var(--accent-gold)' : '1px solid var(--accent-gold)',
             }}
           >
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -253,8 +264,20 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                   fontSize: '0.65rem',
                   fontFamily: 'Press Start 2P, cursive',
                 }}
-                placeholder="Dealer Name"
+                placeholder="God Name"
               />
+              {nextGodIndex === 0 && (
+                <div
+                  style={{
+                    fontSize: '0.5rem',
+                    color: 'var(--accent-gold)',
+                    whiteSpace: 'nowrap',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  👑 {isTrueProphetGod ? 'True Prophet!' : 'Next God'}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button
                   onClick={() => updateDealer({ type: 'human' })}
@@ -361,7 +384,11 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
             PLAYERS ({playerList.length})
           </label>
           <AnimatePresence>
-            {playerList.map((player, index) => (
+            {playerList.map((player, index) => {
+              const playerConfigIndex = index + 1; // +1 because playerList doesn't include dealer
+              const isNextGod = playerConfigIndex === nextGodIndex;
+
+              return (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, height: 0 }}
@@ -371,9 +398,9 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                 style={{
                   marginBottom: '0.75rem',
                   padding: '1rem',
-                  background: 'rgba(0, 0, 0, 0.3)',
+                  background: isNextGod ? 'rgba(255, 215, 0, 0.1)' : 'rgba(0, 0, 0, 0.3)',
                   borderRadius: '8px',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  border: isNextGod ? '2px solid var(--accent-gold)' : '1px solid rgba(255, 255, 255, 0.1)',
                 }}
               >
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -393,6 +420,18 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                     }}
                     placeholder="Player Name"
                   />
+                  {isNextGod && (
+                    <div
+                      style={{
+                        fontSize: '0.5rem',
+                        color: 'var(--accent-gold)',
+                        whiteSpace: 'nowrap',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      👑 {isTrueProphetGod ? 'True Prophet!' : 'Next God'}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button
                       onClick={() => updatePlayer(index, { type: 'human' })}
@@ -455,7 +494,8 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                   </div>
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </AnimatePresence>
 
           {/* Add Player Button */}
