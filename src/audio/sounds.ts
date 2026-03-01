@@ -6,10 +6,32 @@ class SoundManager {
   private ctx: AudioContext | null = null;
   private enabled = true;
   private volume = 0.3;
+  private audioUnavailable = false;
 
-  private initContext() {
+  private initContext(): AudioContext | null {
     if (!this.ctx) {
-      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) {
+        console.warn('[SoundManager] Web Audio API not available, audio disabled');
+        this.enabled = false;
+        this.audioUnavailable = true;
+        return null;
+      }
+      try {
+        this.ctx = new AudioCtx();
+      } catch (err) {
+        console.warn('[SoundManager] AudioContext construction failed, audio disabled:', err);
+        this.enabled = false;
+        this.audioUnavailable = true;
+        return null;
+      }
+      const unlock = () => {
+        if (this.ctx?.state === 'suspended') {
+          this.ctx.resume().catch((err) => { console.warn('[SoundManager] resume failed:', err); });
+        }
+      };
+      document.addEventListener('touchstart', unlock, { once: true });
+      document.addEventListener('click', unlock, { once: true });
     }
     return this.ctx;
   }
@@ -23,6 +45,10 @@ class SoundManager {
   }
 
   setEnabled(enabled: boolean) {
+    if (enabled && this.audioUnavailable) {
+      console.warn('[SoundManager] Audio is unavailable, cannot enable');
+      return;
+    }
     this.enabled = enabled;
   }
 
@@ -37,6 +63,7 @@ class SoundManager {
     if (!this.enabled) return;
 
     const ctx = this.initContext();
+    if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
@@ -60,6 +87,7 @@ class SoundManager {
     if (!this.enabled) return;
 
     const ctx = this.initContext();
+    if (!ctx) return;
     const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5
 
     frequencies.forEach((freq, i) => {
@@ -88,6 +116,7 @@ class SoundManager {
     if (!this.enabled) return;
 
     const ctx = this.initContext();
+    if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
@@ -112,6 +141,7 @@ class SoundManager {
     if (!this.enabled) return;
 
     const ctx = this.initContext();
+    if (!ctx) return;
     const notes = [
       { freq: 523.25, time: 0 },    // C5
       { freq: 659.25, time: 0.1 },  // E5
@@ -145,6 +175,7 @@ class SoundManager {
     if (!this.enabled) return;
 
     const ctx = this.initContext();
+    if (!ctx) return;
     const chord = [261.63, 329.63, 392.00]; // C4, E4, G4
 
     chord.forEach((freq) => {

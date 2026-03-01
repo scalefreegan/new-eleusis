@@ -101,21 +101,27 @@ export class BackgroundShader {
       dpr: Math.min(window.devicePixelRatio, 2)
     });
 
-    this.gl = this.renderer.gl;
+    try {
+      this.gl = this.renderer.gl;
 
-    // Create shader program
-    this.program = new Program(this.gl, {
-      vertex: vertexShader,
-      fragment: fragmentShader,
-      uniforms: {
-        uTime: { value: 0 },
-        uResolution: { value: [window.innerWidth, window.innerHeight] }
-      }
-    });
+      // Create shader program
+      this.program = new Program(this.gl, {
+        vertex: vertexShader,
+        fragment: fragmentShader,
+        uniforms: {
+          uTime: { value: 0 },
+          uResolution: { value: [window.innerWidth, window.innerHeight] }
+        }
+      });
 
-    // Create fullscreen triangle
-    const geometry = new Triangle(this.gl);
-    this.mesh = new Mesh(this.gl, { geometry, program: this.program });
+      // Create fullscreen triangle
+      const geometry = new Triangle(this.gl);
+      this.mesh = new Mesh(this.gl, { geometry, program: this.program });
+    } catch (e) {
+      // Release the WebGL context to avoid leaking it if construction fails mid-way
+      this.renderer.gl.getExtension('WEBGL_lose_context')?.loseContext();
+      throw e;
+    }
 
     // Handle resize
     window.addEventListener('resize', this.handleResize);
@@ -150,6 +156,16 @@ export class BackgroundShader {
   }
 }
 
-export function createBackgroundShader(canvas: HTMLCanvasElement): BackgroundShader {
-  return new BackgroundShader(canvas);
+export function createBackgroundShader(canvas: HTMLCanvasElement): BackgroundShader | null {
+  try {
+    return new BackgroundShader(canvas);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes('WebGL') || msg.includes('context')) {
+      console.warn('[BackgroundShader] WebGL unavailable, using CSS fallback:', msg);
+    } else {
+      console.error('[BackgroundShader] Unexpected shader init error:', msg, e);
+    }
+    return null;
+  }
 }

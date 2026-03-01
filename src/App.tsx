@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
 import { createBackgroundShader } from './shaders/background';
 import { StartMenu } from './components/StartMenu';
 import { GameScreen } from './components/GameScreen';
@@ -8,13 +9,16 @@ import type { PlayerConfig } from './engine/types';
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const shaderRef = useRef<ReturnType<typeof createBackgroundShader> | null>(null);
+  const [shaderFailed, setShaderFailed] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const startNewGame = useGameStore((state) => state.startNewGame);
   const resetGame = useGameStore((state) => state.resetGame);
 
   useEffect(() => {
     if (canvasRef.current && !shaderRef.current) {
-      shaderRef.current = createBackgroundShader(canvasRef.current);
+      const shader = createBackgroundShader(canvasRef.current);
+      shaderRef.current = shader;
+      if (!shader) setShaderFailed(true);
     }
 
     return () => {
@@ -24,6 +28,30 @@ function App() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let handle: { remove: () => Promise<void> } | null = null;
+
+    CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+      if (gameStarted) {
+        resetGame();
+        setGameStarted(false);
+      } else if (!canGoBack) {
+        CapacitorApp.exitApp().catch((err) => { console.warn('[App] exitApp failed:', err); });
+      }
+    })
+      .then((h) => {
+        if (cancelled) h.remove().catch((err) => { console.warn('[App] remove listener failed:', err); });
+        else handle = h;
+      })
+      .catch((err) => { console.warn('[App] backButton listener failed:', err); });
+
+    return () => {
+      cancelled = true;
+      handle?.remove().catch((err) => { console.warn('[App] remove listener failed:', err); });
+    };
+  }, [gameStarted, resetGame]);
 
   const handleStartGame = (configs: PlayerConfig[]) => {
     startNewGame(configs);
@@ -40,7 +68,15 @@ function App() {
   };
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
+    <div style={{
+      width: '100vw',
+      height: '100dvh',
+      position: 'relative',
+      overflow: 'hidden',
+      background: shaderFailed
+        ? 'linear-gradient(to bottom, #1a0f2e, #2d1b4e, #1e3a5f)'
+        : undefined,
+    }}>
       {/* OGL Background Shader */}
       <canvas
         ref={canvasRef}
@@ -51,6 +87,7 @@ function App() {
           width: '100%',
           height: '100%',
           zIndex: 0,
+          display: shaderFailed ? 'none' : undefined,
         }}
       />
 

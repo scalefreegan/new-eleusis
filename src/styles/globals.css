@@ -46,6 +46,8 @@ body {
   background: var(--bg-deep);
   color: var(--text-light);
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* Safe area insets for Android notches and navigation bars */
@@ -202,5 +204,14 @@ body {
   /* Hide less critical UI elements */
   .crt-overlay {
     display: none;
+  }
+}
+
+/* Prevent sticky hover states on touch devices */
+@media (hover: none) {
+  button:hover,
+  [role="button"]:hover {
+    opacity: 1;
+    filter: none;
   }
 }
