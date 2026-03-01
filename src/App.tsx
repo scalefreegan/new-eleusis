@@ -31,25 +31,25 @@ function App() {
 
   useEffect(() => {
     let cancelled = false;
-    let handle: { remove: () => void } | null = null;
+    let handle: { remove: () => Promise<void> } | null = null;
 
-    CapacitorApp.addListener('backButton', () => {
+    CapacitorApp.addListener('backButton', ({ canGoBack }) => {
       if (gameStarted) {
         resetGame();
         setGameStarted(false);
-      } else {
+      } else if (!canGoBack) {
         CapacitorApp.exitApp().catch((err) => { console.warn('[App] exitApp failed:', err); });
       }
     })
       .then((h) => {
-        if (cancelled) h.remove();
+        if (cancelled) h.remove().catch((err) => { console.warn('[App] remove listener failed:', err); });
         else handle = h;
       })
       .catch((err) => { console.warn('[App] backButton listener failed:', err); });
 
     return () => {
       cancelled = true;
-      handle?.remove();
+      handle?.remove().catch((err) => { console.warn('[App] remove listener failed:', err); });
     };
   }, [gameStarted, resetGame]);
 

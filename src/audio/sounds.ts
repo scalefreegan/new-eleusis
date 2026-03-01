@@ -6,6 +6,7 @@ class SoundManager {
   private ctx: AudioContext | null = null;
   private enabled = true;
   private volume = 0.3;
+  private audioUnavailable = false;
 
   private initContext(): AudioContext | null {
     if (!this.ctx) {
@@ -13,6 +14,7 @@ class SoundManager {
       if (!AudioCtx) {
         console.warn('[SoundManager] Web Audio API not available, audio disabled');
         this.enabled = false;
+        this.audioUnavailable = true;
         return null;
       }
       try {
@@ -20,6 +22,7 @@ class SoundManager {
       } catch (err) {
         console.warn('[SoundManager] AudioContext construction failed, audio disabled:', err);
         this.enabled = false;
+        this.audioUnavailable = true;
         return null;
       }
       const unlock = () => {
@@ -29,9 +32,6 @@ class SoundManager {
       };
       document.addEventListener('touchstart', unlock, { once: true });
       document.addEventListener('click', unlock, { once: true });
-    }
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume().catch((err) => { console.warn('[SoundManager] resume failed:', err); });
     }
     return this.ctx;
   }
@@ -45,6 +45,10 @@ class SoundManager {
   }
 
   setEnabled(enabled: boolean) {
+    if (enabled && this.audioUnavailable) {
+      console.warn('[SoundManager] Audio is unavailable, cannot enable');
+      return;
+    }
     this.enabled = enabled;
   }
 
