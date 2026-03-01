@@ -30,18 +30,28 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const listener = CapacitorApp.addListener('backButton', () => {
+    let cancelled = false;
+    let handle: { remove: () => void } | null = null;
+
+    CapacitorApp.addListener('backButton', () => {
       if (gameStarted) {
-        handleReturnToMenu();
+        resetGame();
+        setGameStarted(false);
       } else {
-        CapacitorApp.exitApp();
+        CapacitorApp.exitApp().catch(() => {});
       }
-    });
+    })
+      .then((h) => {
+        if (cancelled) h.remove();
+        else handle = h;
+      })
+      .catch(() => {});
 
     return () => {
-      listener.then((handle) => handle.remove());
+      cancelled = true;
+      handle?.remove();
     };
-  }, [gameStarted]);
+  }, [gameStarted, resetGame]);
 
   const handleStartGame = (configs: PlayerConfig[]) => {
     startNewGame(configs);

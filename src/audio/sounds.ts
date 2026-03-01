@@ -7,16 +7,30 @@ class SoundManager {
   private enabled = true;
   private volume = 0.3;
 
-  private initContext() {
+  private initContext(): AudioContext | null {
     if (!this.ctx) {
-      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) {
+        this.enabled = false;
+        return null;
+      }
+      try {
+        this.ctx = new AudioCtx();
+      } catch {
+        this.enabled = false;
+        return null;
+      }
       const unlock = () => {
-        if (this.ctx?.state === 'suspended') this.ctx.resume();
+        if (this.ctx?.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
       };
       document.addEventListener('touchstart', unlock, { once: true });
       document.addEventListener('click', unlock, { once: true });
     }
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
     return this.ctx;
   }
 
@@ -43,6 +57,7 @@ class SoundManager {
     if (!this.enabled) return;
 
     const ctx = this.initContext();
+    if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
@@ -66,6 +81,7 @@ class SoundManager {
     if (!this.enabled) return;
 
     const ctx = this.initContext();
+    if (!ctx) return;
     const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5
 
     frequencies.forEach((freq, i) => {
@@ -94,6 +110,7 @@ class SoundManager {
     if (!this.enabled) return;
 
     const ctx = this.initContext();
+    if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
@@ -118,6 +135,7 @@ class SoundManager {
     if (!this.enabled) return;
 
     const ctx = this.initContext();
+    if (!ctx) return;
     const notes = [
       { freq: 523.25, time: 0 },    // C5
       { freq: 659.25, time: 0.1 },  // E5
@@ -151,6 +169,7 @@ class SoundManager {
     if (!this.enabled) return;
 
     const ctx = this.initContext();
+    if (!ctx) return;
     const chord = [261.63, 329.63, 392.00]; // C4, E4, G4
 
     chord.forEach((freq) => {

@@ -154,7 +154,12 @@ export function createBackgroundShader(canvas: HTMLCanvasElement): BackgroundSha
   try {
     return new BackgroundShader(canvas);
   } catch (e) {
-    console.warn('WebGL shader init failed, using CSS fallback:', e);
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes('WebGL') || msg.includes('context')) {
+      console.warn('WebGL unavailable, using CSS fallback:', msg);
+    } else {
+      console.error('Unexpected shader init error:', msg, e);
+    }
     return null;
   }
 }
