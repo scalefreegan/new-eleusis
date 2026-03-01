@@ -10,7 +10,13 @@ class SoundManager {
   private initContext() {
     if (!this.ctx) {
       this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const unlock = () => {
+        if (this.ctx?.state === 'suspended') this.ctx.resume();
+      };
+      document.addEventListener('touchstart', unlock, { once: true });
+      document.addEventListener('click', unlock, { once: true });
     }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
     return this.ctx;
   }
 

@@ -150,6 +150,11 @@ export class BackgroundShader {
   }
 }
 
-export function createBackgroundShader(canvas: HTMLCanvasElement): BackgroundShader {
-  return new BackgroundShader(canvas);
+export function createBackgroundShader(canvas: HTMLCanvasElement): BackgroundShader | null {
+  try {
+    return new BackgroundShader(canvas);
+  } catch (e) {
+    console.warn('WebGL shader init failed, using CSS fallback:', e);
+    return null;
+  }
 }
