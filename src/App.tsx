@@ -38,14 +38,14 @@ function App() {
         resetGame();
         setGameStarted(false);
       } else {
-        CapacitorApp.exitApp().catch(() => {});
+        CapacitorApp.exitApp().catch((err) => { console.warn('[App] exitApp failed:', err); });
       }
     })
       .then((h) => {
         if (cancelled) h.remove();
         else handle = h;
       })
-      .catch(() => {});
+      .catch((err) => { console.warn('[App] backButton listener failed:', err); });
 
     return () => {
       cancelled = true;

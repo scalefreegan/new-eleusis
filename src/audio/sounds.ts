@@ -11,25 +11,27 @@ class SoundManager {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) {
+        console.warn('[SoundManager] Web Audio API not available, audio disabled');
         this.enabled = false;
         return null;
       }
       try {
         this.ctx = new AudioCtx();
-      } catch {
+      } catch (err) {
+        console.warn('[SoundManager] AudioContext construction failed, audio disabled:', err);
         this.enabled = false;
         return null;
       }
       const unlock = () => {
         if (this.ctx?.state === 'suspended') {
-          this.ctx.resume().catch(() => {});
+          this.ctx.resume().catch((err) => { console.warn('[SoundManager] resume failed:', err); });
         }
       };
       document.addEventListener('touchstart', unlock, { once: true });
       document.addEventListener('click', unlock, { once: true });
     }
     if (this.ctx.state === 'suspended') {
-      this.ctx.resume().catch(() => {});
+      this.ctx.resume().catch((err) => { console.warn('[SoundManager] resume failed:', err); });
     }
     return this.ctx;
   }
