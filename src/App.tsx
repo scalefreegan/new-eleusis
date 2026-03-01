@@ -3,14 +3,17 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { createBackgroundShader } from './shaders/background';
 import { StartMenu } from './components/StartMenu';
 import { GameScreen } from './components/GameScreen';
+import { RuleCompilerModal } from './components/RuleCompilerModal';
 import { useGameStore } from './store/gameStore';
-import type { PlayerConfig } from './engine/types';
+import type { PlayerConfig, Card } from './engine/types';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const shaderRef = useRef<ReturnType<typeof createBackgroundShader> | null>(null);
   const [shaderFailed, setShaderFailed] = useState(false);
-  const [gameStarted, setGameStarted] = useState(false);
+  const [appState, setAppState] = useState<'menu' | 'compilingRule' | 'game'>('menu');
+  const [pendingConfigs, setPendingConfigs] = useState<PlayerConfig[] | null>(null);
+  const [pendingRuleText, setPendingRuleText] = useState('');
   const startNewGame = useGameStore((state) => state.startNewGame);
   const resetGame = useGameStore((state) => state.resetGame);
 
@@ -34,9 +37,9 @@ function App() {
     let handle: { remove: () => Promise<void> } | null = null;
 
     CapacitorApp.addListener('backButton', ({ canGoBack }) => {
-      if (gameStarted) {
+      if (appState === 'game') {
         resetGame();
-        setGameStarted(false);
+        setAppState('menu');
       } else if (!canGoBack) {
         CapacitorApp.exitApp().catch((err) => { console.warn('[App] exitApp failed:', err); });
       }
@@ -51,20 +54,49 @@ function App() {
       cancelled = true;
       handle?.remove().catch((err) => { console.warn('[App] remove listener failed:', err); });
     };
-  }, [gameStarted, resetGame]);
+  }, [appState, resetGame]);
 
-  const handleStartGame = (configs: PlayerConfig[]) => {
-    startNewGame(configs);
-    setGameStarted(true);
+  const handleStartGame = (configs: PlayerConfig[], ruleText?: string) => {
+    const humanGod = configs.find(c => c.isGod && c.type === 'human');
+    const hasRule = ruleText && ruleText.trim().length > 0;
+
+    if (humanGod && hasRule) {
+      setPendingConfigs(configs);
+      setPendingRuleText(ruleText.trim());
+      setAppState('compilingRule');
+    } else {
+      startNewGame(configs, ruleText);
+      setAppState('game');
+    }
+  };
+
+  const handleCompiled = (fn: (lastCard: Card, newCard: Card) => boolean) => {
+    if (pendingConfigs) {
+      startNewGame(pendingConfigs, pendingRuleText, fn);
+    }
+    setPendingConfigs(null);
+    setPendingRuleText('');
+    setAppState('game');
+  };
+
+  const handleSkipCompilation = () => {
+    if (pendingConfigs) {
+      startNewGame(pendingConfigs, pendingRuleText);
+    }
+    setPendingConfigs(null);
+    setPendingRuleText('');
+    setAppState('game');
   };
 
   const handleReturnToMenu = () => {
     resetGame();
-    setGameStarted(false);
+    setPendingConfigs(null);
+    setPendingRuleText('');
+    setAppState('menu');
   };
 
   const handleContinueGame = () => {
-    setGameStarted(true);
+    setAppState('game');
   };
 
   return (
@@ -95,9 +127,17 @@ function App() {
       <div className="crt-overlay" />
 
       {/* Main Content */}
-      {!gameStarted ? (
+      {appState === 'menu' && (
         <StartMenu onStartGame={handleStartGame} onContinueGame={handleContinueGame} />
-      ) : (
+      )}
+      {appState === 'compilingRule' && pendingRuleText && (
+        <RuleCompilerModal
+          ruleText={pendingRuleText}
+          onCompiled={handleCompiled}
+          onSkip={handleSkipCompilation}
+        />
+      )}
+      {appState === 'game' && (
         <GameScreen onReturnToMenu={handleReturnToMenu} />
       )}
     </div>

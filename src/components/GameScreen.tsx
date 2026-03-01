@@ -455,13 +455,21 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
       )}
 
       {/* Dealer Control Panel (for human dealer) */}
-      {showDealerPanel && state.pendingPlay && (
-        <DealerControlPanel
-          pendingCard={state.pendingPlay.cards[0]}
-          playerName={state.pendingPlay.playerId}
-          onJudge={handleJudgeCard}
-        />
-      )}
+      {showDealerPanel && state.pendingPlay && (() => {
+        const pendingCard = state.pendingPlay.cards[0];
+        const lastCard = state.mainLine.length > 0 ? state.mainLine[state.mainLine.length - 1] : undefined;
+        const autoVerdict = state.godRuleFunction && lastCard
+          ? state.godRuleFunction(lastCard, pendingCard)
+          : undefined;
+        return (
+          <DealerControlPanel
+            pendingCard={pendingCard}
+            playerName={state.pendingPlay.playerId}
+            onJudge={handleJudgeCard}
+            autoVerdict={autoVerdict}
+          />
+        );
+      })()}
 
       {/* No-Play Dispute Panel */}
       {showNoPlayPanel && (

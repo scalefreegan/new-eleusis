@@ -31,7 +31,7 @@ interface GameStore {
   clearSelection: () => void;
 
   // Game setup
-  startNewGame: (configs: PlayerConfig[]) => void;
+  startNewGame: (configs: PlayerConfig[], ruleText?: string, ruleFunction?: (lastCard: import('../engine/types').Card, newCard: import('../engine/types').Card) => boolean) => void;
   resetGame: () => void;
   loadSavedGame: () => void;
   clearSavedGame: () => void;
@@ -41,7 +41,7 @@ interface GameStore {
   confirmTurnTransition: () => void;
   judgeCardAsHumanDealer: (cardId: string, correct: boolean) => void;
   makeProphetPrediction: (prediction: boolean) => void;
-  resolveNoPlayAsHumanGod: (valid: boolean) => void;
+  resolveNoPlayAsHumanGod: (valid: boolean, correctCardId?: string) => void;
 
   // AI actions
   executeAITurn: () => void;
@@ -94,7 +94,7 @@ export const useGameStore = create<GameStore>()(
       }
     }
 
-    // After PLAY_CARD with AI dealer, auto-judge the cards
+    // After PLAY_CARD with AI dealer or compiled rule, auto-judge the cards
     if (action.type === 'PLAY_CARD' && newState.pendingPlay) {
       const { aiGod } = get();
       const player = newState.players.find(p => p.id === action.playerId);
@@ -103,8 +103,13 @@ export const useGameStore = create<GameStore>()(
       const prophetPlayer = newState.players.find(p => p.isProphet && p.type === 'human' && !p.isGod);
       const shouldWaitForProphet = prophetPlayer && prophetPlayer.id !== action.playerId;
 
-      // Only auto-judge if there's an AI dealer, no Prophet awaiting prediction, and player is human
-      if (aiGod && player && player.type === 'human' && newState.mainLine.length > 0 && !shouldWaitForProphet) {
+      // Judge function: prefer aiGod, fall back to godRuleFunction (compiled human God rule)
+      const judgeCard = aiGod
+        ? (last: import('../engine/types').Card, card: import('../engine/types').Card) => aiGod.judgeCard(last, card)
+        : newState.godRuleFunction ?? null;
+
+      // Auto-judge if there's a judge function, no Prophet awaiting, and player is human
+      if (judgeCard && player && player.type === 'human' && newState.mainLine.length > 0 && !shouldWaitForProphet) {
         const cardIds = newState.pendingPlay.cards.map(c => c.id);
 
         // Judge each card sequentially
@@ -115,7 +120,7 @@ export const useGameStore = create<GameStore>()(
 
             if (card && currentState.mainLine.length > 0) {
               const lastCard = currentState.mainLine[currentState.mainLine.length - 1];
-              const isCorrect = aiGod.judgeCard(lastCard, card);
+              const isCorrect = judgeCard(lastCard, card);
 
               // Play judgment sound
               setTimeout(() => {
@@ -137,10 +142,13 @@ export const useGameStore = create<GameStore>()(
       }
     }
 
-    // After PROPHET_PREDICT with AI dealer, compare prediction to dealer judgment
+    // After PROPHET_PREDICT with AI dealer or compiled rule, compare prediction to dealer judgment
     if (action.type === 'PROPHET_PREDICT' && newState.pendingPlay) {
       const { aiGod } = get();
-      if (aiGod && newState.mainLine.length > 0) {
+      const judgeCardFn = aiGod
+        ? (last: import('../engine/types').Card, card: import('../engine/types').Card) => aiGod.judgeCard(last, card)
+        : newState.godRuleFunction ?? null;
+      if (judgeCardFn && newState.mainLine.length > 0) {
         const card = newState.pendingPlay.cards.find(c => c.id === action.cardId);
         if (card) {
           setTimeout(() => {
@@ -149,7 +157,7 @@ export const useGameStore = create<GameStore>()(
               const pendingCard = currentState.pendingPlay.cards.find(c => c.id === action.cardId);
               if (pendingCard) {
                 const lastCard = currentState.mainLine[currentState.mainLine.length - 1];
-                const godJudgment = aiGod.judgeCard(lastCard, pendingCard);
+                const godJudgment = judgeCardFn(lastCard, pendingCard);
                 const prophetPrediction = action.prediction;
                 const prophetPlayer = currentState.players.find(p => p.isProphet && !p.isGod);
 
@@ -207,15 +215,18 @@ export const useGameStore = create<GameStore>()(
       }
     }
 
-    // After RESOLVE_NO_PLAY with AI God, auto-find correct card for invalid no-play
+    // After RESOLVE_NO_PLAY with AI God or compiled rule, auto-find correct card for invalid no-play
     if (action.type === 'RESOLVE_NO_PLAY' && !action.valid && !action.correctCardId) {
       const { aiGod } = get();
-      if (aiGod && previousState.noPlayDeclaration && previousState.mainLine.length > 0) {
+      const judgeCardFn = aiGod
+        ? (last: import('../engine/types').Card, card: import('../engine/types').Card) => aiGod.judgeCard(last, card)
+        : previousState.godRuleFunction ?? null;
+      if (judgeCardFn && previousState.noPlayDeclaration && previousState.mainLine.length > 0) {
         const player = previousState.players.find(p => p.id === previousState.noPlayDeclaration!.playerId);
         if (player) {
           const lastCard = previousState.mainLine[previousState.mainLine.length - 1];
           // Find a correct card in player's hand
-          const correctCard = player.hand.find(card => aiGod.judgeCard(lastCard, card));
+          const correctCard = player.hand.find(card => judgeCardFn(lastCard, card));
           if (correctCard) {
             // Re-dispatch with correct card ID
             setTimeout(() => {
@@ -231,20 +242,23 @@ export const useGameStore = create<GameStore>()(
       }
     }
 
-    // After DECLARE_NO_PLAY, auto-resolve for AI God
+    // After DECLARE_NO_PLAY, auto-resolve for AI God or compiled rule
     if (action.type === 'DECLARE_NO_PLAY' && newState.phase === 'no_play_dispute') {
       const { aiGod } = get();
-      if (aiGod && newState.noPlayDeclaration && newState.mainLine.length > 0) {
+      const judgeCardFn = aiGod
+        ? (last: import('../engine/types').Card, card: import('../engine/types').Card) => aiGod.judgeCard(last, card)
+        : newState.godRuleFunction ?? null;
+      if (judgeCardFn && newState.noPlayDeclaration && newState.mainLine.length > 0) {
         const player = newState.players.find(p => p.id === newState.noPlayDeclaration!.playerId);
         if (player) {
           const lastCard = newState.mainLine[newState.mainLine.length - 1];
           // Check if any card in player's hand is valid
-          const hasValidPlay = player.hand.some(card => aiGod.judgeCard(lastCard, card));
+          const hasValidPlay = player.hand.some(card => judgeCardFn(lastCard, card));
 
           setTimeout(() => {
             if (hasValidPlay) {
               // Invalid no-play - find the correct card
-              const correctCard = player.hand.find(card => aiGod.judgeCard(lastCard, card));
+              const correctCard = player.hand.find(card => judgeCardFn(lastCard, card));
               get().dispatch({
                 type: 'RESOLVE_NO_PLAY',
                 valid: false,
@@ -305,7 +319,7 @@ export const useGameStore = create<GameStore>()(
     set({ selectedCards: new Set() });
   },
 
-  startNewGame: (configs: PlayerConfig[]) => {
+  startNewGame: (configs: PlayerConfig[], ruleText?: string, ruleFunction?: (lastCard: import('../engine/types').Card, newCard: import('../engine/types').Card) => boolean) => {
     const { lastGodIndex, trueProphetIndex } = get();
 
     // Determine next God index
@@ -350,6 +364,19 @@ export const useGameStore = create<GameStore>()(
         type: 'SET_GOD_RULE',
         rule: aiGod.getRuleName(),
         ruleFunction: aiGod.getRuleFunction(),
+      });
+    } else if (ruleFunction) {
+      // Human God with a compiled rule function
+      state = gameReducer(state, {
+        type: 'SET_GOD_RULE',
+        rule: ruleText ?? 'Custom rule',
+        ruleFunction,
+      });
+    } else if (ruleText) {
+      // Human God with rule text but no compiled function (manual judgment mode)
+      state = gameReducer(state, {
+        type: 'SET_GOD_RULE',
+        rule: ruleText,
       });
     }
 
@@ -432,9 +459,12 @@ export const useGameStore = create<GameStore>()(
           // Find the card in pendingPlay
           const card = currentState.pendingPlay?.cards.find(c => c.id === cardId);
 
-          if (card && aiGod && currentState.mainLine.length > 0) {
+          const judgeCardForAI = aiGod
+            ? (l: import('../engine/types').Card, c: import('../engine/types').Card) => aiGod.judgeCard(l, c)
+            : currentState.godRuleFunction ?? null;
+          if (card && judgeCardForAI && currentState.mainLine.length > 0) {
             const lastCard = currentState.mainLine[currentState.mainLine.length - 1];
-            const isCorrect = aiGod.judgeCard(lastCard, card);
+            const isCorrect = judgeCardForAI(lastCard, card);
 
             // Play judgment sound
             setTimeout(() => {
@@ -523,15 +553,10 @@ export const useGameStore = create<GameStore>()(
     }
   },
 
-  resolveNoPlayAsHumanGod: (valid: boolean) => {
+  resolveNoPlayAsHumanGod: (valid: boolean, correctCardId?: string) => {
     const { state, dispatch } = get();
 
-    if (!state.noPlayDeclaration || !state.godRuleFunction || state.mainLine.length === 0) {
-      return;
-    }
-
-    const player = state.players.find(p => p.id === state.noPlayDeclaration!.playerId);
-    if (!player) {
+    if (!state.noPlayDeclaration) {
       return;
     }
 
@@ -541,17 +566,33 @@ export const useGameStore = create<GameStore>()(
         type: 'RESOLVE_NO_PLAY',
         valid: true,
       });
-    } else {
-      // Invalid no-play - find a correct card in player's hand
+      return;
+    }
+
+    // Invalid no-play - need a correct card to play
+    if (correctCardId) {
+      // Card was explicitly provided (manual God card selection)
+      dispatch({
+        type: 'RESOLVE_NO_PLAY',
+        valid: false,
+        correctCardId,
+      });
+      return;
+    }
+
+    if (state.godRuleFunction && state.mainLine.length > 0) {
+      // Compiled rule - find a valid card automatically
+      const player = state.players.find(p => p.id === state.noPlayDeclaration!.playerId);
+      if (!player) return;
       const lastCard = state.mainLine[state.mainLine.length - 1];
       const correctCard = player.hand.find(card => state.godRuleFunction!(lastCard, card));
-
       dispatch({
         type: 'RESOLVE_NO_PLAY',
         valid: false,
         correctCardId: correctCard?.id,
       });
     }
+    // If no godRuleFunction and no correctCardId provided, caller must supply a card selection
   },
 
   resetGame: () => {

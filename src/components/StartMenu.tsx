@@ -7,11 +7,12 @@ import { GlassPanel } from './GlassPanel';
 import { HelpOverlay } from './HelpOverlay';
 import { SettingsPanel } from './SettingsPanel';
 import { useGameStore } from '../store/gameStore';
+import { useRuleCompilerAvailable } from '../hooks/useRuleCompilerAvailable';
 import type { PlayerConfig } from '../engine/types';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface StartMenuProps {
-  onStartGame: (configs: PlayerConfig[]) => void;
+  onStartGame: (configs: PlayerConfig[], ruleText?: string) => void;
   onContinueGame?: () => void;
 }
 
@@ -19,6 +20,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const { hasSavedGame, loadSavedGame, lastGodIndex, trueProphetIndex } = useGameStore();
+  const { available: compilerAvailable, loading: compilerLoading } = useRuleCompilerAvailable();
 
   // Default: AI dealer, 1 human player, 2 AI players
   const [playerConfigs, setPlayerConfigs] = useState<PlayerConfig[]>([
@@ -91,9 +93,10 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
     }
   };
 
+  const isHumanGod = dealerConfig.type === 'human';
+
   const handleStart = () => {
-    // For now, we don't handle custom dealer rules (that's for future implementation)
-    onStartGame(playerConfigs);
+    onStartGame(playerConfigs, isHumanGod ? dealerRule : undefined);
   };
 
   // Calculate which player will be God next
@@ -325,47 +328,63 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
             {/* Custom Rule Input (if dealer is human) */}
             {dealerConfig.type === 'human' && (
               <div style={{ marginTop: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <label
-                    style={{
-                      fontSize: '0.5rem',
-                      color: 'var(--text-dim)',
-                    }}
-                  >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <label style={{ fontSize: '0.5rem', color: 'var(--text-dim)' }}>
                     SECRET RULE (OPTIONAL)
                   </label>
-                  <button
-                    onClick={() => setShowRule(!showRule)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--accent-blue)',
-                      fontSize: '0.5rem',
-                      cursor: 'pointer',
-                      fontFamily: 'Press Start 2P, cursive',
-                    }}
-                  >
-                    {showRule ? 'HIDE' : 'SHOW'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    {!compilerLoading && compilerAvailable && dealerRule.trim().length > 0 && (
+                      <div style={{ fontSize: '0.35rem', color: '#00cc88' }}>
+                        ⚡ Will compile on start
+                      </div>
+                    )}
+                    {!compilerLoading && !compilerAvailable && (
+                      <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)' }}>
+                        Manual judgment only
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setShowRule(!showRule)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--accent-blue)',
+                        fontSize: '0.5rem',
+                        cursor: 'pointer',
+                        fontFamily: 'Press Start 2P, cursive',
+                      }}
+                    >
+                      {showRule ? 'HIDE' : 'SHOW'}
+                    </button>
+                  </div>
                 </div>
                 <textarea
                   value={dealerRule}
                   onChange={(e) => setDealerRule(e.target.value)}
-                  placeholder="Describe your secret rule..."
+                  placeholder={compilerAvailable
+                    ? 'e.g. "alternate red and black" or "rank must increase by 1"'
+                    : 'Describe your secret rule (for reference only — judge manually)'}
                   style={{
                     width: '100%',
                     height: '80px',
                     padding: '0.75rem',
                     background: 'rgba(255, 255, 255, 0.1)',
-                    border: '2px solid rgba(255, 255, 255, 0.2)',
+                    border: `2px solid ${compilerAvailable && dealerRule.trim().length > 0 ? 'rgba(0, 200, 136, 0.4)' : 'rgba(255, 255, 255, 0.2)'}`,
                     borderRadius: '8px',
                     color: showRule ? 'var(--text-light)' : 'transparent',
                     textShadow: showRule ? 'none' : '0 0 8px var(--text-light)',
                     fontSize: '0.5rem',
                     fontFamily: 'Press Start 2P, cursive',
                     resize: 'vertical',
+                    boxSizing: 'border-box',
                   }}
                 />
+                {compilerAvailable && dealerRule.trim().length > 0 && (
+                  <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)', marginTop: '0.3rem', lineHeight: 1.5 }}>
+                    Claude will compile this into a deterministic function when you start.
+                    You'll review examples before the game begins.
+                  </div>
+                )}
               </div>
             )}
           </div>
