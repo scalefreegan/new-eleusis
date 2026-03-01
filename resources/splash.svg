@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2732 2732">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" style="stop-color:#2d1b4e"/>
+      <stop offset="100%" style="stop-color:#0a0a1a"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd700"/>
+      <stop offset="100%" style="stop-color:#ffaa00"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="2732" height="2732" fill="url(#bg)"/>
+  <!-- Card shape -->
+  <rect x="1016" y="816" width="700" height="980" rx="40" fill="#ffffff" stroke="url(#gold)" stroke-width="12" opacity="0.95"/>
+  <!-- Question mark -->
+  <text x="1366" y="1440" text-anchor="middle" font-family="serif" font-size="560" font-weight="bold" fill="#8a2be2">?</text>
+  <!-- Title -->
+  <text x="1366" y="2100" text-anchor="middle" font-family="monospace" font-size="120" font-weight="bold" fill="url(#gold)">NEW ELEUSIS</text>
+</svg>
