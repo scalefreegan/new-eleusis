@@ -156,6 +156,6 @@ describe('StartMenu', () => {
     fireEvent.click(dealerHumanButton);
 
     // Should show the secret rule textarea when dealer is human
-    expect(screen.getByPlaceholderText('Describe your secret rule...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('e.g. "alternate red and black" or "rank must increase by 1"')).toBeInTheDocument();
   });
 });

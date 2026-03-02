@@ -1,10 +1,20 @@
 /**
  * Client-side rule compiler service.
- * Calls the Vite dev server's /api/compile-rule endpoint and sandboxes the result.
+ *
+ * Two backends:
+ *  - 'cloud'  — Calls the Vite dev server's /api/compile-rule endpoint (Claude CLI)
+ *  - 'local'  — Runs Qwen2.5-Coder-1.5B-Instruct locally via Transformers.js WASM
+ *
+ * Backend preference is persisted in localStorage under 'ruleCompilerBackend'.
+ * Defaults to 'local' when the cloud endpoint is unavailable (production/Android).
  */
 
 import { getRankValue, getSuitColor, isFaceCard, isEvenRank } from '../engine/deck';
 import type { Card, Rank, Suit } from '../engine/types';
+// llmBackend, compilerPromptLocal, generateExamples are lazy-imported inside
+// compileRuleLocal() so that the heavy @huggingface/transformers package is
+// never loaded during tests or in code paths that only use the cloud backend.
+import type { DownloadProgress } from './llmBackend';
 
 // ────────────────────────────────────────────
 // Types
@@ -21,6 +31,35 @@ export interface CompileResult {
   functionBody: string;
   examples: CardExample[];
   ambiguities: string[];
+}
+
+export type CompilerBackend = 'cloud' | 'local';
+
+const BACKEND_STORAGE_KEY = 'ruleCompilerBackend';
+
+export function getPreferredBackend(): CompilerBackend {
+  try {
+    const stored = localStorage.getItem(BACKEND_STORAGE_KEY);
+    if (stored === 'cloud' || stored === 'local') return stored;
+  } catch {
+    // localStorage unavailable
+  }
+  return 'local';
+}
+
+export function setPreferredBackend(backend: CompilerBackend): void {
+  try {
+    localStorage.setItem(BACKEND_STORAGE_KEY, backend);
+  } catch {
+    // localStorage unavailable
+  }
+}
+
+export interface LocalCompileOptions {
+  /** Called during model download with progress info */
+  onProgress?: (progress: DownloadProgress) => void;
+  /** Whether to prefer WebGPU acceleration when available */
+  preferWebGPU?: boolean;
 }
 
 export interface CompiledRule {
@@ -184,10 +223,10 @@ export function stressTestFunction(fn: (lastCard: Card, newCard: Card) => boolea
 }
 
 // ────────────────────────────────────────────
-// Availability check
+// Availability check (cloud endpoint)
 // ────────────────────────────────────────────
 
-export async function isCompilerAvailable(): Promise<boolean> {
+export async function isCloudCompilerAvailable(): Promise<boolean> {
   try {
     const res = await fetch('/api/compile-rule/health', {
       method: 'GET',
@@ -199,11 +238,14 @@ export async function isCompilerAvailable(): Promise<boolean> {
   }
 }
 
+/** @deprecated Use isCloudCompilerAvailable() — local backend is always available */
+export const isCompilerAvailable = isCloudCompilerAvailable;
+
 // ────────────────────────────────────────────
-// Main compile function
+// Cloud compile (Claude CLI via dev server)
 // ────────────────────────────────────────────
 
-export async function compileRule(
+async function compileRuleCloud(
   ruleText: string,
   clarifications?: string
 ): Promise<CompiledRule> {
@@ -220,16 +262,13 @@ export async function compileRule(
 
   const data = await res.json() as CompileResult;
 
-  // Validate function body security
   const validation = validateFunctionBody(data.functionBody);
   if (!validation.valid) {
     throw new Error(`Security validation failed: ${validation.error}`);
   }
 
-  // Create sandboxed function
   const fn = createSandboxedFunction(data.functionBody);
 
-  // Stress-test for stability
   const stable = stressTestFunction(fn);
   if (!stable) {
     throw new Error('Compiled function failed stability test (throws or returns non-boolean)');
@@ -241,4 +280,88 @@ export async function compileRule(
     ambiguities: data.ambiguities ?? [],
     functionBody: data.functionBody,
   };
+}
+
+// ────────────────────────────────────────────
+// Local compile (Transformers.js WASM / WebLLM)
+// ────────────────────────────────────────────
+
+/** Local JSON response shape — no examples (generated programmatically) */
+interface LocalCompileResult {
+  functionBody: string;
+  ambiguities?: string[];
+}
+
+export async function compileRuleLocal(
+  ruleText: string,
+  clarifications?: string,
+  opts: LocalCompileOptions = {}
+): Promise<CompiledRule> {
+  // Lazy-load the LLM-specific modules so @huggingface/transformers is never
+  // imported in tests or in the cloud-backend code path.
+  const [{ getLLMBackend, extractJsonFromOutput }, { buildLocalCompilerPrompt }, { generateExamples }] =
+    await Promise.all([
+      import('./llmBackend'),
+      import('./compilerPromptLocal'),
+      import('./generateExamples'),
+    ]);
+
+  const backend = await getLLMBackend({
+    onProgress: opts.onProgress,
+    preferWebGPU: opts.preferWebGPU ?? false,
+  });
+
+  const prompt = buildLocalCompilerPrompt(ruleText, clarifications);
+
+  opts.onProgress?.({ progress: -1, status: 'Generating rule function…', total: 0, loaded: 0 });
+
+  const rawOutput = await backend.generate(prompt);
+
+  const parsed = extractJsonFromOutput(rawOutput) as LocalCompileResult | null;
+
+  if (!parsed || typeof parsed.functionBody !== 'string') {
+    throw new Error(
+      `Local LLM did not return valid JSON with functionBody.\nRaw output:\n${rawOutput.slice(0, 500)}`
+    );
+  }
+
+  const validation = validateFunctionBody(parsed.functionBody);
+  if (!validation.valid) {
+    throw new Error(`Security validation failed: ${validation.error}`);
+  }
+
+  const fn = createSandboxedFunction(parsed.functionBody);
+
+  const stable = stressTestFunction(fn);
+  if (!stable) {
+    throw new Error('Compiled function failed stability test (throws or returns non-boolean)');
+  }
+
+  opts.onProgress?.({ progress: -1, status: 'Generating examples…', total: 0, loaded: 0 });
+  const examples = generateExamples(fn, 10);
+
+  return {
+    fn,
+    examples,
+    ambiguities: parsed.ambiguities ?? [],
+    functionBody: parsed.functionBody,
+  };
+}
+
+// ────────────────────────────────────────────
+// Main compile function (routes by backend)
+// ────────────────────────────────────────────
+
+export async function compileRule(
+  ruleText: string,
+  clarifications?: string,
+  opts: LocalCompileOptions & { backend?: CompilerBackend } = {}
+): Promise<CompiledRule> {
+  const backend = opts.backend ?? getPreferredBackend();
+
+  if (backend === 'local') {
+    return compileRuleLocal(ruleText, clarifications, opts);
+  }
+
+  return compileRuleCloud(ruleText, clarifications);
 }
