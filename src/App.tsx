@@ -70,9 +70,9 @@ function App() {
     }
   };
 
-  const handleCompiled = (fn: (lastCard: Card, newCard: Card) => boolean) => {
+  const handleCompiled = (fn: (lastCard: Card, newCard: Card) => boolean, functionBody: string) => {
     if (pendingConfigs) {
-      startNewGame(pendingConfigs, pendingRuleText, fn);
+      startNewGame(pendingConfigs, pendingRuleText, fn, functionBody);
     }
     setPendingConfigs(null);
     setPendingRuleText('');

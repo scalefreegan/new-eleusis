@@ -5,7 +5,7 @@
  * and lets God accept or override it. When undefined, shows manual CORRECT/WRONG buttons.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GlassPanel } from './GlassPanel';
 import { Card as CardComponent } from './Card';
 import type { Card } from '../engine/types';
@@ -36,6 +36,11 @@ export const DealerControlPanel: React.FC<DealerControlPanelProps> = ({
 }) => {
   const [overrideMode, setOverrideMode] = useState(false);
   const hasAutoVerdict = autoVerdict !== undefined;
+
+  // Reset override mode when a new card arrives
+  useEffect(() => {
+    setOverrideMode(false);
+  }, [pendingCard.id]);
 
   const handleAcceptAuto = () => {
     onJudge(autoVerdict!);

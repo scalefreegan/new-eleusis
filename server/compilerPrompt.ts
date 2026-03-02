@@ -29,7 +29,7 @@ helpers.isEvenRank(rank): boolean  // true for 2, 4, 6, 8, 10, Q(12)
 \`\`\`
 
 ## Function Signature
-The function receives two parameters:
+The function receives three parameters:
 - \`lastCard\`: the last card on the main line (the card played before this one)
 - \`newCard\`: the card being played now
 - \`helpers\`: the helper object above

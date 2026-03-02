@@ -1,73 +1,72 @@
-# React + TypeScript + Vite
+# New Eleusis
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A digital implementation of **New Eleusis**, the card game that simulates the scientific method. One player (the "God" or dealer) creates a secret rule governing which cards can be played, and the other players ("Scientists") perform experiments by playing cards to deduce the rule.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **AI or Human God** — The dealer can be an AI that picks from 38+ built-in rules, or a human player who invents their own
+- **Rule Compiler** — Human Gods can describe their rule in plain English and have it compiled into a deterministic judge function (cloud or local LLM backends)
+- **Prophet System** — Players who think they know the rule can declare themselves Prophet and predict outcomes for other players
+- **Hot-seat Multiplayer** — Pass-and-play support with turn transition overlays
+- **Scoring & Sudden Death** — Full implementation of New Eleusis scoring, markers, and sudden death mechanics
 
-## React Compiler
+## Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install       # Install dependencies
+npm run dev       # Start development server
+npm test          # Run test suite
+npm run build     # Production build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Android (Capacitor)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run cap:sync  # Build and sync to Android
+npm run cap:open  # Open in Android Studio
+npm run cap:run   # Run on connected device
 ```
+
+## Architecture
+
+```
+src/
+├── engine/           # Pure TypeScript game logic (no UI dependencies)
+│   ├── ai/           # AI dealer (rule bank), AI player, hypothesis engine
+│   ├── types.ts      # Core type definitions
+│   ├── reducer.ts    # Pure reducer for all state transitions
+│   ├── validation.ts # Rule validation
+│   ├── scoring.ts    # Score calculation
+│   └── deck.ts       # Card utilities
+├── store/            # Zustand state management
+│   └── gameStore.ts  # Store wrapping the reducer + side effects
+├── components/       # React UI (retro arcade aesthetic)
+├── services/         # Rule compiler client service
+└── audio/            # Sound effects
+server/               # Vite dev server plugins (rule compiler API)
+tests/                # Vitest test suite
+```
+
+## Rule Compiler
+
+The rule compiler converts natural language rules (e.g., "alternate red and black cards") into deterministic JavaScript judge functions. Two backends are available:
+
+- **Cloud** (dev only) — Routes through a Vite dev server plugin to Claude CLI for high-quality compilation with examples
+- **Local** (everywhere) — Uses Transformers.js with a quantized Qwen model running in-browser via WASM
+
+Compiled functions are sandboxed with security validation (forbidden pattern detection) and stress-tested before use.
+
+## Game Rules
+
+See [`NEW_ELEUSIS_RULES.md`](./NEW_ELEUSIS_RULES.md) for the complete official rules of New Eleusis.
+
+## Testing
+
+```bash
+npm test              # Unit + integration tests (~350 tests)
+npm run test:rules    # Rule bank cross-validation (requires dev server + Claude CLI)
+```
+
+## License
+
+Private project.
