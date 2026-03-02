@@ -1,43 +1,19 @@
 /**
- * Hook that detects whether the Vite dev server's rule compiler endpoint is available.
- * Returns false on Android/production where the endpoint doesn't exist.
+ * Hook that indicates the rule compiler is available.
+ *
+ * With the local LLM backend (Transformers.js WASM), the compiler works
+ * everywhere — browser, production builds, and Capacitor WebView.
+ * The cloud backend (Claude CLI dev server) is now a user-selectable option
+ * rather than a prerequisite.
+ *
+ * Always returns available: true immediately.
  */
 
-import { useState, useEffect } from 'react';
-import { isCompilerAvailable } from '../services/ruleCompiler';
-
-interface UseRuleCompilerAvailableResult {
+export interface UseRuleCompilerAvailableResult {
   available: boolean;
   loading: boolean;
 }
 
-let cachedAvailable: boolean | null = null;
-
 export function useRuleCompilerAvailable(): UseRuleCompilerAvailableResult {
-  const [available, setAvailable] = useState<boolean>(cachedAvailable ?? false);
-  const [loading, setLoading] = useState<boolean>(cachedAvailable === null);
-
-  useEffect(() => {
-    if (cachedAvailable !== null) {
-      setAvailable(cachedAvailable);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    isCompilerAvailable().then((result) => {
-      if (!cancelled) {
-        cachedAvailable = result;
-        setAvailable(result);
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return { available, loading };
+  return { available: true, loading: false };
 }
