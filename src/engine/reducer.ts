@@ -173,9 +173,9 @@ function playCard(state: GameState, action: { type: 'PLAY_CARD'; playerId: strin
     predictions: {},
   };
 
-  // If there's a dealer rule function (AI dealer), stay in 'playing' phase
-  // If no dealer rule function (human dealer), transition to 'awaiting_judgment'
-  const newPhase = state.godRuleFunction ? 'playing' : 'awaiting_judgment';
+  // Always transition to 'awaiting_judgment': AI God auto-judges via store effect,
+  // human God (compiled or manual) uses DealerControlPanel
+  const newPhase = 'awaiting_judgment';
 
   return {
     ...state,

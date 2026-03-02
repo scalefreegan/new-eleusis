@@ -29,7 +29,7 @@ type Step = 'backendSelect' | 'downloading' | 'compiling' | 'ambiguity' | 'confi
 
 interface RuleCompilerModalProps {
   ruleText: string;
-  onCompiled: (fn: (lastCard: Card, newCard: Card) => boolean) => void;
+  onCompiled: (fn: (lastCard: Card, newCard: Card) => boolean, functionBody: string) => void;
   onSkip: () => void;
 }
 
@@ -122,7 +122,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
 
     setStep('ready');
     setTimeout(() => {
-      onCompiled(compiled.fn);
+      onCompiled(compiled.fn, compiled.functionBody);
     }, 800);
   };
 

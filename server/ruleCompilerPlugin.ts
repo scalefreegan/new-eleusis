@@ -29,11 +29,15 @@ interface CompileResponse {
 
 /** Extract the first JSON object from a string (handles markdown fences etc.) */
 function extractJson(text: string): unknown {
+  let directError: unknown;
+  let fenceError: unknown;
+  let braceError: unknown;
+
   // Direct parse
   try {
     return JSON.parse(text);
-  } catch {
-    // ignore
+  } catch (e) {
+    directError = e;
   }
 
   // Fenced code block
@@ -41,8 +45,8 @@ function extractJson(text: string): unknown {
   if (fenceMatch) {
     try {
       return JSON.parse(fenceMatch[1]);
-    } catch {
-      // ignore
+    } catch (e) {
+      fenceError = e;
     }
   }
 
@@ -51,12 +55,14 @@ function extractJson(text: string): unknown {
   if (bracePos !== -1) {
     try {
       return JSON.parse(text.slice(bracePos));
-    } catch {
-      // ignore
+    } catch (e) {
+      braceError = e;
     }
   }
 
-  throw new Error(`Could not extract JSON from output: ${text.slice(0, 300)}`);
+  throw new Error(
+    `Could not extract JSON. direct: ${directError}, fence: ${fenceError ?? 'no fence'}, brace: ${braceError ?? 'no brace'}. Raw (500 chars): ${text.slice(0, 500)}`
+  );
 }
 
 /** Run `claude -p <prompt> --output-format json --max-turns 1 --dangerously-skip-permissions` */
@@ -71,6 +77,11 @@ function runClaudeCli(prompt: string): Promise<string> {
     let stdout = '';
     let stderr = '';
 
+    const timeoutId = setTimeout(() => {
+      proc.kill('SIGTERM');
+      reject(new Error('claude CLI timed out after 60s'));
+    }, 60_000);
+
     proc.stdout.on('data', (chunk: Buffer) => {
       stdout += chunk.toString();
     });
@@ -80,6 +91,7 @@ function runClaudeCli(prompt: string): Promise<string> {
     });
 
     proc.on('close', (code) => {
+      clearTimeout(timeoutId);
       if (code !== 0) {
         reject(new Error(`claude exited with code ${code}: ${stderr.slice(0, 500)}`));
         return;
@@ -88,17 +100,23 @@ function runClaudeCli(prompt: string): Promise<string> {
     });
 
     proc.on('error', (err) => {
+      clearTimeout(timeoutId);
       reject(new Error(`Failed to spawn claude: ${err.message}`));
     });
   });
 }
 
-/** Parse the JSON body from an HTTP request */
+/** Read the raw body from an HTTP request as a string */
 function readRequestBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     let body = '';
+    const MAX_BYTES = 10 * 1024; // 10KB
     req.on('data', (chunk: Buffer) => {
       body += chunk.toString();
+      if (Buffer.byteLength(body) > MAX_BYTES) {
+        req.destroy(new Error('Request body too large (max 10KB)'));
+        reject(new Error('Request body too large (max 10KB)'));
+      }
     });
     req.on('end', () => resolve(body));
     req.on('error', reject);
@@ -155,8 +173,12 @@ export function ruleCompilerPlugin(): Plugin {
           let agentText: string;
           try {
             const wrapper = JSON.parse(rawOutput) as Record<string, unknown>;
+            if (wrapper.is_error === true) {
+              throw new Error(`Claude CLI returned an error: ${wrapper.result ?? wrapper.error ?? rawOutput.slice(0, 500)}`);
+            }
             agentText = typeof wrapper.result === 'string' ? wrapper.result : rawOutput;
-          } catch {
+          } catch (e) {
+            if (e instanceof Error && e.message.startsWith('Claude CLI')) throw e;
             agentText = rawOutput;
           }
 

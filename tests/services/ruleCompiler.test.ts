@@ -109,6 +109,67 @@ describe('validateFunctionBody', () => {
     const result = validateFunctionBody("Object.prototype.x = 1; return true;");
     expect(result.valid).toBe(false);
   });
+
+  it('rejects this keyword', () => {
+    const result = validateFunctionBody("return this.fetch !== undefined;");
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('Forbidden pattern');
+  });
+
+  it('rejects null input', () => {
+    const result = validateFunctionBody(null as unknown as string);
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects non-string input', () => {
+    const result = validateFunctionBody(42 as unknown as string);
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects __proto__ access', () => {
+    const result = validateFunctionBody("return newCard.__proto__ !== undefined;");
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects constructor access', () => {
+    const result = validateFunctionBody("return newCard.constructor.name.length > 0;");
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects WebSocket', () => {
+    const result = validateFunctionBody("new WebSocket('ws://evil.com'); return true;");
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects XMLHttpRequest', () => {
+    const result = validateFunctionBody("new XMLHttpRequest(); return true;");
+    expect(result.valid).toBe(false);
+  });
+
+  it('allows "location" as a variable name (not blocked by window)', () => {
+    const body = "const location = lastCard.suit === 'hearts' ? 1 : 0;\nreturn location > 0;";
+    expect(validateFunctionBody(body).valid).toBe(true);
+  });
+
+  it('allows "history" as a variable name', () => {
+    const body = "const history = [lastCard.rank];\nreturn history.includes(newCard.rank);";
+    expect(validateFunctionBody(body).valid).toBe(true);
+  });
+
+  it('allows "cookies" as a variable name', () => {
+    const body = "const cookies = lastCard.rank === 'K';\nreturn cookies;";
+    expect(validateFunctionBody(body).valid).toBe(true);
+  });
+
+  it('still blocks window.location via the window pattern', () => {
+    const result = validateFunctionBody("return window.location.href.length > 0;");
+    expect(result.valid).toBe(false);
+  });
+
+  it('still blocks document.cookie via the document pattern', () => {
+    const result = validateFunctionBody("return document.cookie.length > 0;");
+    expect(result.valid).toBe(false);
+  });
 });
 
 // ────────────────────────────────────────────
@@ -268,18 +329,18 @@ return (lastIdx + 1) % 4 === newIdx;`
     expect(stressTestFunction(fn)).toBe(true);
   });
 
-  it('handles functions that throw (returns false)', () => {
-    // A function that throws on some inputs
-    let callCount = 0;
-    const fn = (_last: Card, _next: Card): boolean => {
-      callCount++;
-      if (callCount > 10) throw new Error('boom');
+  it('returns false when function throws on some inputs', () => {
+    let count = 0;
+    const throwingFn = (_last: Card, _next: Card): boolean => {
+      if (++count > 50) throw new Error('unstable after 50 calls');
       return true;
     };
-    // stressTestFunction wraps the raw fn, not sandboxed - we need to test the wrapped version
-    // Create a version that throws
-    const throwingFn = createSandboxedFunction("if (Math.random() > 2) throw new Error(); return true;");
-    expect(stressTestFunction(throwingFn)).toBe(true); // random > 2 is always false so never throws
+    expect(stressTestFunction(throwingFn)).toBe(false);
+  });
+
+  it('returns false when function returns non-boolean', () => {
+    const nonBoolFn = (_last: Card, _next: Card) => null as unknown as boolean;
+    expect(stressTestFunction(nonBoolFn)).toBe(false);
   });
 });
 

@@ -441,7 +441,7 @@ describe('gameReducer', () => {
       expect(state.phase).toBe('awaiting_judgment');
     });
 
-    it('stays in playing phase when dealer rule function exists', () => {
+    it('goes to awaiting_judgment even when dealer rule function exists', () => {
       const stateWithRuleFunction = gameReducer(initialState, {
         type: 'SET_GOD_RULE',
         rule: 'test-rule',
@@ -457,7 +457,8 @@ describe('gameReducer', () => {
         cardIds: [cardId],
       });
 
-      expect(state.phase).toBe('playing');
+      // Always goes to awaiting_judgment; store effect handles auto-judgment
+      expect(state.phase).toBe('awaiting_judgment');
     });
 
     it('handles multiple cards', () => {

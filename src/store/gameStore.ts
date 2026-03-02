@@ -14,6 +14,7 @@ import {
   type PlayerConfig,
 } from '../engine';
 import { sounds } from '../audio/sounds';
+import { validateFunctionBody, createSandboxedFunction } from '../services/ruleCompiler';
 
 interface GameStore {
   state: GameState;
@@ -24,6 +25,7 @@ interface GameStore {
   hasSavedGame: boolean;
   lastGodIndex: number; // Track which player was God last game for rotation
   trueProphetIndex: number; // Track True Prophet (becomes next God, -1 if none)
+  godFunctionBody: string | null; // Persisted function body for human God compiled rules
 
   // Actions
   dispatch: (action: GameAction) => void;
@@ -31,7 +33,7 @@ interface GameStore {
   clearSelection: () => void;
 
   // Game setup
-  startNewGame: (configs: PlayerConfig[], ruleText?: string, ruleFunction?: (lastCard: import('../engine/types').Card, newCard: import('../engine/types').Card) => boolean) => void;
+  startNewGame: (configs: PlayerConfig[], ruleText?: string, ruleFunction?: (lastCard: import('../engine/types').Card, newCard: import('../engine/types').Card) => boolean, functionBody?: string) => void;
   resetGame: () => void;
   loadSavedGame: () => void;
   clearSavedGame: () => void;
@@ -64,6 +66,7 @@ export const useGameStore = create<GameStore>()(
       hasSavedGame: false,
       lastGodIndex: -1, // -1 means no previous God, start with first player
       trueProphetIndex: -1, // -1 means no True Prophet
+      godFunctionBody: null,
 
   dispatch: (action: GameAction) => {
     const previousState = get().state;
@@ -103,10 +106,10 @@ export const useGameStore = create<GameStore>()(
       const prophetPlayer = newState.players.find(p => p.isProphet && p.type === 'human' && !p.isGod);
       const shouldWaitForProphet = prophetPlayer && prophetPlayer.id !== action.playerId;
 
-      // Judge function: prefer aiGod, fall back to godRuleFunction (compiled human God rule)
+      // Judge function: AI God only — human God with compiled rule uses DealerControlPanel
       const judgeCard = aiGod
         ? (last: import('../engine/types').Card, card: import('../engine/types').Card) => aiGod.judgeCard(last, card)
-        : newState.godRuleFunction ?? null;
+        : null;
 
       // Auto-judge if there's a judge function, no Prophet awaiting, and player is human
       if (judgeCard && player && player.type === 'human' && newState.mainLine.length > 0 && !shouldWaitForProphet) {
@@ -259,10 +262,14 @@ export const useGameStore = create<GameStore>()(
             if (hasValidPlay) {
               // Invalid no-play - find the correct card
               const correctCard = player.hand.find(card => judgeCardFn(lastCard, card));
+              if (!correctCard) {
+                console.error('[gameStore] No correct card found during no-play auto-resolution');
+                return;
+              }
               get().dispatch({
                 type: 'RESOLVE_NO_PLAY',
                 valid: false,
-                correctCardId: correctCard?.id,
+                correctCardId: correctCard.id,
               });
             } else {
               // Valid no-play
@@ -319,7 +326,7 @@ export const useGameStore = create<GameStore>()(
     set({ selectedCards: new Set() });
   },
 
-  startNewGame: (configs: PlayerConfig[], ruleText?: string, ruleFunction?: (lastCard: import('../engine/types').Card, newCard: import('../engine/types').Card) => boolean) => {
+  startNewGame: (configs: PlayerConfig[], ruleText?: string, ruleFunction?: (lastCard: import('../engine/types').Card, newCard: import('../engine/types').Card) => boolean, functionBody?: string) => {
     const { lastGodIndex, trueProphetIndex } = get();
 
     // Determine next God index
@@ -360,10 +367,10 @@ export const useGameStore = create<GameStore>()(
 
     // Set god rule
     if (aiGod) {
+      // AI God: judgment is handled by the aiGod store object, not GameState.godRuleFunction
       state = gameReducer(state, {
         type: 'SET_GOD_RULE',
         rule: aiGod.getRuleName(),
-        ruleFunction: aiGod.getRuleFunction(),
       });
     } else if (ruleFunction) {
       // Human God with a compiled rule function
@@ -402,6 +409,7 @@ export const useGameStore = create<GameStore>()(
     set({
       state,
       aiGod,
+      godFunctionBody: functionBody ?? null,
       selectedCards: new Set(),
       showTransitionOverlay: false,
       transitionTargetName: '',
@@ -663,14 +671,23 @@ export const useGameStore = create<GameStore>()(
     {
       name: SAVE_KEY,
       partialize: (state) => ({
-        state: state.state,
+        // Strip godRuleFunction (non-serializable) — reconstructed from godFunctionBody on rehydration
+        state: { ...state.state, godRuleFunction: undefined },
         godRuleName: state.aiGod?.getRuleName() || null,
+        godFunctionBody: state.godFunctionBody,
         hasSavedGame: state.state.phase !== 'setup',
         lastGodIndex: state.lastGodIndex,
         trueProphetIndex: state.trueProphetIndex,
       }),
       onRehydrateStorage: () => (state) => {
-        // After rehydration, reconstruct AIDealer if needed
+        // Reconstruct compiled human God rule function from persisted body
+        if (state?.godFunctionBody) {
+          const v = validateFunctionBody(state.godFunctionBody);
+          if (v.valid) {
+            state.state.godRuleFunction = createSandboxedFunction(state.godFunctionBody);
+          }
+        }
+        // Reconstruct AIDealer if needed
         if (state?.state && state.state.godRule) {
           const dealer = createAIDealer();
           state.aiGod = dealer;

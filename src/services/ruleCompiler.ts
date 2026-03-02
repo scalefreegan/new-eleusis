@@ -108,13 +108,11 @@ const FORBIDDEN_PATTERNS = [
   /\blocalStorage\b/,
   /\bsessionStorage\b/,
   /\bIndexedDB\b/,
-  /\bcookies\b/,
-  /\blocation\b/,
   /\bnavigator\b/,
-  /\bhistory\b/,
   /\bperformance\b/,
   /\bcrypto\b/,
-  /\bAtob\s*\(/,
+  /\batob\s*\(/,
+  /\bthis\b/,
   /\bbtoa\s*\(/,
   /\bBlob\b/,
   /\bWorker\b/,
@@ -149,7 +147,7 @@ export function createSandboxedFunction(
   body: string
 ): (lastCard: Card, newCard: Card) => boolean {
   // eslint-disable-next-line no-new-func
-  const fn = new Function('lastCard', 'newCard', 'helpers', body) as (
+  const fn = new Function('lastCard', 'newCard', 'helpers', `'use strict';\n${body}`) as (
     lastCard: Card,
     newCard: Card,
     helpers: typeof HELPERS
@@ -159,7 +157,8 @@ export function createSandboxedFunction(
     try {
       const result = fn(lastCard, newCard, HELPERS);
       return Boolean(result);
-    } catch {
+    } catch (err) {
+      console.error('[ruleCompiler] Sandboxed function threw:', err);
       return false;
     }
   };
@@ -215,7 +214,8 @@ export function stressTestFunction(fn: (lastCard: Card, newCard: Card) => boolea
     try {
       const result = fn(last, next);
       if (typeof result !== 'boolean') return false;
-    } catch {
+    } catch (err) {
+      console.error('[ruleCompiler] stressTest: function threw on iteration', i, err);
       return false;
     }
   }
@@ -253,6 +253,7 @@ async function compileRuleCloud(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ruleText, clarifications }),
+    signal: AbortSignal.timeout(90_000),
   });
 
   if (!res.ok) {
