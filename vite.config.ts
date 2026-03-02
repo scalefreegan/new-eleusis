@@ -11,5 +11,7 @@ export default defineConfig({
     // Excluding it from Vite's dep pre-bundler prevents extremely slow
     // startup during `npm test` and `npm run dev`.
     exclude: ['@huggingface/transformers'],
+    // Don't scan Capacitor's pre-built assets for dependencies
+    entries: ['index.html', 'src/**/*.{ts,tsx}'],
   },
 })
