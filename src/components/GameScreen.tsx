@@ -140,9 +140,14 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
 
   // Pre-compute dealer panel props (avoids IIFE in JSX)
   const dealerPendingCard = showDealerPanel && state.pendingPlay ? state.pendingPlay.cards[0] : undefined;
-  const dealerAutoVerdict = dealerPendingCard && state.godRuleFunction && state.mainLine.length > 0
-    ? state.godRuleFunction(state.mainLine[state.mainLine.length - 1], dealerPendingCard)
-    : undefined;
+  let dealerAutoVerdict: boolean | undefined;
+  if (dealerPendingCard && state.godRuleFunction && state.mainLine.length > 0) {
+    try {
+      dealerAutoVerdict = state.godRuleFunction(state.mainLine[state.mainLine.length - 1], dealerPendingCard);
+    } catch (err) {
+      console.error('[GameScreen] godRuleFunction threw, falling back to manual judgment:', err);
+    }
+  }
 
   return (
     <div

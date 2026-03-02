@@ -5,10 +5,10 @@
  *   - Runs via WASM in browser and Capacitor WebView (no WebGPU required)
  *   - ~900 MB model download, cached in browser cache / IndexedDB
  *
- * Optional accelerated path: WebLLM (WebGPU, desktop Chrome/Edge only)
- *   - 3–5× faster but not available in Capacitor WebView
+ * Future planned feature: WebLLM (WebGPU, desktop Chrome/Edge only)
+ *   - Not yet implemented — install @mlc-ai/web-llm and wire up to enable
+ *   - Would be 3–5× faster but not available in Capacitor WebView
  *   - Detected at runtime via navigator.gpu
- *   - Only used if explicitly enabled
  *
  * Usage:
  *   const backend = await getLLMBackend({ onProgress });
@@ -29,7 +29,7 @@ export interface DownloadProgress {
 export interface LLMBackendOptions {
   /** Called during model download/initialisation with progress info */
   onProgress?: (progress: DownloadProgress) => void;
-  /** If true, prefer WebLLM when WebGPU is available (default: false on first call) */
+  /** If true, prefer WebLLM when WebGPU is available (currently unused — WebLLM not yet implemented) */
   preferWebGPU?: boolean;
 }
 
@@ -53,7 +53,6 @@ const MAX_NEW_TOKENS = 512;
 // ─────────────────────────────────────────────────────────────────────────────
 
 let _singleton: LLMBackend | null = null;
-let _singletonType: 'transformers' | 'webllm' | null = null;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Capability detection
@@ -178,7 +177,6 @@ export async function getLLMBackend(opts: LLMBackendOptions = {}): Promise<LLMBa
   // createWebLLMBackend() here when opts.preferWebGPU && isWebGPUAvailable().
 
   _singleton = await createTransformersBackend(opts);
-  _singletonType = 'transformers';
   return _singleton;
 }
 
@@ -190,19 +188,24 @@ export function disposeLLMBackend(): void {
   if (_singleton) {
     _singleton.dispose();
     _singleton = null;
-    _singletonType = null;
   }
 }
 
 /** Extract the first JSON object from a string (strips markdown fences, preamble) */
 export function extractJsonFromOutput(text: string): unknown {
+  const errors: string[] = [];
+
   // Direct parse
-  try { return JSON.parse(text); } catch { /* ignore */ }
+  try { return JSON.parse(text); } catch (e) {
+    errors.push(`direct: ${e instanceof Error ? e.message : String(e)}`);
+  }
 
   // Fenced code block ```json ... ```
   const fenceMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
   if (fenceMatch) {
-    try { return JSON.parse(fenceMatch[1]); } catch { /* ignore */ }
+    try { return JSON.parse(fenceMatch[1]); } catch (e) {
+      errors.push(`fence: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
   // First bare { ... }
@@ -215,12 +218,15 @@ export function extractJsonFromOutput(text: string): unknown {
       else if (text[i] === '}') {
         depth--;
         if (depth === 0) {
-          try { return JSON.parse(text.slice(start, i + 1)); } catch { /* ignore */ }
+          try { return JSON.parse(text.slice(start, i + 1)); } catch (e) {
+            errors.push(`brace: ${e instanceof Error ? e.message : String(e)}`);
+          }
           break;
         }
       }
     }
   }
 
+  console.warn('[llmBackend] extractJsonFromOutput failed. Strategies tried:', errors.join('; '), 'Input (500 chars):', text.slice(0, 500));
   return null;
 }

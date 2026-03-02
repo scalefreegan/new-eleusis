@@ -4,15 +4,9 @@
  * examples are generated programmatically rather than by the model.
  */
 
-import type { Card, Rank, Suit } from '../engine/types';
+import type { Card } from '../engine/types';
 import type { CardExample } from './ruleCompiler';
-
-const ALL_RANKS: Rank[] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-const ALL_SUITS: Suit[] = ['hearts', 'diamonds', 'clubs', 'spades'];
-
-function makeCard(rank: Rank, suit: Suit): Card {
-  return { rank, suit, id: `${suit}-${rank}-0` };
-}
+import { createLCG, randomCard } from './cardSampling';
 
 /**
  * Generate `count` examples (targeting ~50% valid/invalid) from the function.
@@ -22,32 +16,23 @@ export function generateExamples(
   fn: (lastCard: Card, newCard: Card) => boolean,
   count = 10
 ): CardExample[] {
-  // Seeded LCG
-  let seed = 12345;
-  const rng = () => {
-    seed = (seed * 1664525 + 1013904223) & 0xffffffff;
-    return (seed >>> 0) / 0xffffffff;
-  };
-
-  const randomCard = (): Card => {
-    const rank = ALL_RANKS[Math.floor(rng() * ALL_RANKS.length)];
-    const suit = ALL_SUITS[Math.floor(rng() * ALL_SUITS.length)];
-    return makeCard(rank, suit);
-  };
+  const rng = createLCG(12345);
 
   const examples: CardExample[] = [];
   let trueCount = 0;
   let falseCount = 0;
+  let exceptionCount = 0;
   const maxAttempts = count * 20;
 
   for (let attempt = 0; attempt < maxAttempts && examples.length < count; attempt++) {
-    const lastCard = randomCard();
-    const newCard = randomCard();
+    const lastCard = randomCard(rng);
+    const newCard = randomCard(rng);
 
     let result: boolean;
     try {
       result = fn(lastCard, newCard);
     } catch {
+      exceptionCount++;
       continue;
     }
     if (typeof result !== 'boolean') continue;
@@ -63,6 +48,12 @@ export function generateExamples(
 
     examples.push({ lastCard, newCard, expected: result, explanation });
     if (result) trueCount++; else falseCount++;
+  }
+
+  if (exceptionCount > maxAttempts * 0.1) {
+    console.warn(
+      `[generateExamples] ${exceptionCount}/${maxAttempts} attempts threw (${(exceptionCount / maxAttempts * 100).toFixed(0)}%). The compiled function may be unstable.`
+    );
   }
 
   return examples;

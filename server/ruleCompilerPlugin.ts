@@ -50,13 +50,26 @@ function extractJson(text: string): unknown {
     }
   }
 
-  // First bare { ... }
+  // First bare { ... } — track brace depth to find the matching close
   const bracePos = text.indexOf('{');
   if (bracePos !== -1) {
-    try {
-      return JSON.parse(text.slice(bracePos));
-    } catch (e) {
-      braceError = e;
+    let depth = 0;
+    for (let i = bracePos; i < text.length; i++) {
+      if (text[i] === '{') depth++;
+      else if (text[i] === '}') {
+        depth--;
+        if (depth === 0) {
+          try {
+            return JSON.parse(text.slice(bracePos, i + 1));
+          } catch (e) {
+            braceError = e;
+          }
+          break;
+        }
+      }
+    }
+    if (!braceError) {
+      braceError = new Error('No matching closing brace found');
     }
   }
 
@@ -110,16 +123,18 @@ function runClaudeCli(prompt: string): Promise<string> {
 function readRequestBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     let body = '';
+    let settled = false;
     const MAX_BYTES = 10 * 1024; // 10KB
     req.on('data', (chunk: Buffer) => {
       body += chunk.toString();
-      if (Buffer.byteLength(body) > MAX_BYTES) {
+      if (!settled && Buffer.byteLength(body) > MAX_BYTES) {
+        settled = true;
         req.destroy(new Error('Request body too large (max 10KB)'));
         reject(new Error('Request body too large (max 10KB)'));
       }
     });
-    req.on('end', () => resolve(body));
-    req.on('error', reject);
+    req.on('end', () => { if (!settled) { settled = true; resolve(body); } });
+    req.on('error', (err) => { if (!settled) { settled = true; reject(err); } });
   });
 }
 

@@ -60,10 +60,10 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
     // Switch from 'downloading' to 'compiling' once the model is ready or we start generating
     if (progress.status.toLowerCase().startsWith('generat')) {
       setStep('compiling');
-    } else if (step !== 'compiling') {
-      setStep('downloading');
+    } else {
+      setStep(prev => prev === 'compiling' ? prev : 'downloading');
     }
-  }, [step]);
+  }, []);
 
   const doCompile = useCallback(async (selectedBackend: CompilerBackend, extraClarifications?: string) => {
     setStep(selectedBackend === 'local' ? 'downloading' : 'compiling');

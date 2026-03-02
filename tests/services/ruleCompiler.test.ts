@@ -229,11 +229,11 @@ describe('createSandboxedFunction', () => {
     expect(fn(ACE, card('A', 'clubs'))).toBe(false); // A=1, odd
   });
 
-  it('handles errors gracefully (returns false on throw)', () => {
+  it('propagates errors from the sandboxed function', () => {
     const fn = createSandboxedFunction(
       "throw new Error('oops'); return true;"
     );
-    expect(fn(RED_CARD, BLACK_CARD)).toBe(false);
+    expect(() => fn(RED_CARD, BLACK_CARD)).toThrow('oops');
   });
 
   it('converts non-boolean return to boolean', () => {
