@@ -10,7 +10,8 @@
  */
 
 import { getRankValue, getSuitColor, isFaceCard, isEvenRank } from '../engine/deck';
-import type { Card, Rank, Suit } from '../engine/types';
+import type { Card } from '../engine/types';
+import { createLCG, randomCard } from './cardSampling';
 // llmBackend, compilerPromptLocal, generateExamples are lazy-imported inside
 // compileRuleLocal() so that the heavy @huggingface/transformers package is
 // never loaded during tests or in code paths that only use the cloud backend.
@@ -154,13 +155,8 @@ export function createSandboxedFunction(
   ) => boolean;
 
   return (lastCard: Card, newCard: Card) => {
-    try {
-      const result = fn(lastCard, newCard, HELPERS);
-      return Boolean(result);
-    } catch (err) {
-      console.error('[ruleCompiler] Sandboxed function threw:', err);
-      return false;
-    }
+    const result = fn(lastCard, newCard, HELPERS);
+    return Boolean(result);
   };
 }
 
@@ -190,23 +186,9 @@ export function testCompiledFunction(
   return { passed: failures.length === 0, failures };
 }
 
-const ALL_RANKS: Rank[] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-const ALL_SUITS: Suit[] = ['hearts', 'diamonds', 'clubs', 'spades'];
-
-function randomCard(rng: () => number): Card {
-  const rank = ALL_RANKS[Math.floor(rng() * ALL_RANKS.length)];
-  const suit = ALL_SUITS[Math.floor(rng() * ALL_SUITS.length)];
-  return { rank, suit, id: `${suit}-${rank}-0` };
-}
-
 /** Stress-test with 200 random pairs using a seeded PRNG */
 export function stressTestFunction(fn: (lastCard: Card, newCard: Card) => boolean): boolean {
-  // Simple LCG for reproducible stress-tests
-  let seed = 42;
-  const rng = () => {
-    seed = (seed * 1664525 + 1013904223) & 0xffffffff;
-    return (seed >>> 0) / 0xffffffff;
-  };
+  const rng = createLCG(42);
 
   for (let i = 0; i < 200; i++) {
     const last = randomCard(rng);
@@ -220,6 +202,23 @@ export function stressTestFunction(fn: (lastCard: Card, newCard: Card) => boolea
     }
   }
   return true;
+}
+
+/** Validate a function body, create a sandboxed function, and stress-test it. */
+function validateAndCreateFunction(functionBody: string): (lastCard: Card, newCard: Card) => boolean {
+  const validation = validateFunctionBody(functionBody);
+  if (!validation.valid) {
+    throw new Error(`Security validation failed: ${validation.error}`);
+  }
+
+  const fn = createSandboxedFunction(functionBody);
+
+  const stable = stressTestFunction(fn);
+  if (!stable) {
+    throw new Error('Compiled function failed stability test (throws or returns non-boolean)');
+  }
+
+  return fn;
 }
 
 // ────────────────────────────────────────────
@@ -262,18 +261,7 @@ async function compileRuleCloud(
   }
 
   const data = await res.json() as CompileResult;
-
-  const validation = validateFunctionBody(data.functionBody);
-  if (!validation.valid) {
-    throw new Error(`Security validation failed: ${validation.error}`);
-  }
-
-  const fn = createSandboxedFunction(data.functionBody);
-
-  const stable = stressTestFunction(fn);
-  if (!stable) {
-    throw new Error('Compiled function failed stability test (throws or returns non-boolean)');
-  }
+  const fn = validateAndCreateFunction(data.functionBody);
 
   return {
     fn,
@@ -284,7 +272,7 @@ async function compileRuleCloud(
 }
 
 // ────────────────────────────────────────────
-// Local compile (Transformers.js WASM / WebLLM)
+// Local compile (Transformers.js WASM)
 // ────────────────────────────────────────────
 
 /** Local JSON response shape — no examples (generated programmatically) */
@@ -326,17 +314,7 @@ export async function compileRuleLocal(
     );
   }
 
-  const validation = validateFunctionBody(parsed.functionBody);
-  if (!validation.valid) {
-    throw new Error(`Security validation failed: ${validation.error}`);
-  }
-
-  const fn = createSandboxedFunction(parsed.functionBody);
-
-  const stable = stressTestFunction(fn);
-  if (!stable) {
-    throw new Error('Compiled function failed stability test (throws or returns non-boolean)');
-  }
+  const fn = validateAndCreateFunction(parsed.functionBody);
 
   opts.onProgress?.({ progress: -1, status: 'Generating examples…', total: 0, loaded: 0 });
   const examples = generateExamples(fn, 10);

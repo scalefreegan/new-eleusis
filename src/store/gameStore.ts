@@ -97,7 +97,7 @@ export const useGameStore = create<GameStore>()(
       }
     }
 
-    // After PLAY_CARD with AI dealer or compiled rule, auto-judge the cards
+    // After PLAY_CARD with AI dealer, auto-judge the cards
     if (action.type === 'PLAY_CARD' && newState.pendingPlay) {
       const { aiGod } = get();
       const player = newState.players.find(p => p.id === action.playerId);
@@ -160,7 +160,13 @@ export const useGameStore = create<GameStore>()(
               const pendingCard = currentState.pendingPlay.cards.find(c => c.id === action.cardId);
               if (pendingCard) {
                 const lastCard = currentState.mainLine[currentState.mainLine.length - 1];
-                const godJudgment = judgeCardFn(lastCard, pendingCard);
+                let godJudgment: boolean;
+                try {
+                  godJudgment = judgeCardFn(lastCard, pendingCard);
+                } catch (err) {
+                  console.error('[gameStore] judgeCardFn threw in PROPHET_PREDICT, falling back to manual judgment:', err);
+                  return;
+                }
                 const prophetPrediction = action.prediction;
                 const prophetPlayer = currentState.players.find(p => p.isProphet && !p.isGod);
 
@@ -228,15 +234,20 @@ export const useGameStore = create<GameStore>()(
         const player = previousState.players.find(p => p.id === previousState.noPlayDeclaration!.playerId);
         if (player) {
           const lastCard = previousState.mainLine[previousState.mainLine.length - 1];
-          // Find a correct card in player's hand
-          const correctCard = player.hand.find(card => judgeCardFn(lastCard, card));
+          let correctCard: import('../engine/types').Card | undefined;
+          try {
+            correctCard = player.hand.find(card => judgeCardFn(lastCard, card));
+          } catch (err) {
+            console.error('[gameStore] judgeCardFn threw in RESOLVE_NO_PLAY, falling back to manual judgment:', err);
+            return;
+          }
           if (correctCard) {
             // Re-dispatch with correct card ID
             setTimeout(() => {
               get().dispatch({
                 type: 'RESOLVE_NO_PLAY',
                 valid: false,
-                correctCardId: correctCard.id,
+                correctCardId: correctCard!.id,
               });
             }, 100);
             return;
@@ -255,13 +266,24 @@ export const useGameStore = create<GameStore>()(
         const player = newState.players.find(p => p.id === newState.noPlayDeclaration!.playerId);
         if (player) {
           const lastCard = newState.mainLine[newState.mainLine.length - 1];
-          // Check if any card in player's hand is valid
-          const hasValidPlay = player.hand.some(card => judgeCardFn(lastCard, card));
+          let hasValidPlay: boolean;
+          try {
+            hasValidPlay = player.hand.some(card => judgeCardFn(lastCard, card));
+          } catch (err) {
+            console.error('[gameStore] judgeCardFn threw in DECLARE_NO_PLAY, falling back to manual judgment:', err);
+            return;
+          }
 
           setTimeout(() => {
             if (hasValidPlay) {
               // Invalid no-play - find the correct card
-              const correctCard = player.hand.find(card => judgeCardFn(lastCard, card));
+              let correctCard: import('../engine/types').Card | undefined;
+              try {
+                correctCard = player.hand.find(card => judgeCardFn(lastCard, card));
+              } catch (err) {
+                console.error('[gameStore] judgeCardFn threw finding correct card:', err);
+                return;
+              }
               if (!correctCard) {
                 console.error('[gameStore] No correct card found during no-play auto-resolution');
                 return;
@@ -472,7 +494,13 @@ export const useGameStore = create<GameStore>()(
             : currentState.godRuleFunction ?? null;
           if (card && judgeCardForAI && currentState.mainLine.length > 0) {
             const lastCard = currentState.mainLine[currentState.mainLine.length - 1];
-            const isCorrect = judgeCardForAI(lastCard, card);
+            let isCorrect: boolean;
+            try {
+              isCorrect = judgeCardForAI(lastCard, card);
+            } catch (err) {
+              console.error('[gameStore] judgeCardForAI threw in executeAITurn, skipping judgment:', err);
+              return;
+            }
 
             // Play judgment sound
             setTimeout(() => {
@@ -593,11 +621,22 @@ export const useGameStore = create<GameStore>()(
       const player = state.players.find(p => p.id === state.noPlayDeclaration!.playerId);
       if (!player) return;
       const lastCard = state.mainLine[state.mainLine.length - 1];
-      const correctCard = player.hand.find(card => state.godRuleFunction!(lastCard, card));
+      let correctCard: import('../engine/types').Card | undefined;
+      try {
+        correctCard = player.hand.find(card => state.godRuleFunction!(lastCard, card));
+      } catch (err) {
+        console.error('[gameStore] godRuleFunction threw in resolveNoPlayAsHumanGod:', err);
+        return;
+      }
+      if (!correctCard) {
+        // Compiled rule agrees no card is valid — resolve as valid
+        dispatch({ type: 'RESOLVE_NO_PLAY', valid: true });
+        return;
+      }
       dispatch({
         type: 'RESOLVE_NO_PLAY',
         valid: false,
-        correctCardId: correctCard?.id,
+        correctCardId: correctCard.id,
       });
     }
     // If no godRuleFunction and no correctCardId provided, caller must supply a card selection
@@ -622,19 +661,34 @@ export const useGameStore = create<GameStore>()(
       if (!saved) return;
 
       const parsed = JSON.parse(saved);
-      const { state: savedState, godRuleName, lastGodIndex, trueProphetIndex } = parsed;
+      const { state: savedState, godRuleName, godFunctionBody, lastGodIndex, trueProphetIndex } = parsed;
 
-      // Reconstruct AI dealer if it exists
+      // Reconstruct compiled rule function or AI dealer
       let aiGod = null;
-      if (godRuleName) {
+      let restoredFunctionBody: string | null = godFunctionBody ?? null;
+      if (restoredFunctionBody) {
+        // Human God with compiled rule — reconstruct the function
+        const v = validateFunctionBody(restoredFunctionBody);
+        if (v.valid) {
+          try {
+            savedState.godRuleFunction = createSandboxedFunction(restoredFunctionBody);
+          } catch (err) {
+            console.warn('[gameStore] Failed to reconstruct godRuleFunction in loadSavedGame:', err);
+            restoredFunctionBody = null;
+          }
+        } else {
+          console.warn('[gameStore] Saved godFunctionBody failed validation, clearing');
+          restoredFunctionBody = null;
+        }
+      } else if (godRuleName) {
+        // AI God — create a new dealer
         aiGod = createAIDealer();
-        // Note: We can't perfectly restore the dealer's exact rule,
-        // but we create a new one for consistency
       }
 
       set({
         state: savedState,
         aiGod,
+        godFunctionBody: restoredFunctionBody,
         selectedCards: new Set(),
         showTransitionOverlay: false,
         transitionTargetName: '',
@@ -643,7 +697,7 @@ export const useGameStore = create<GameStore>()(
         trueProphetIndex: trueProphetIndex ?? -1,
       });
     } catch (err) {
-      console.error('Failed to load saved game:', err);
+      console.warn('Failed to load saved game:', err);
     }
   },
 
@@ -684,11 +738,19 @@ export const useGameStore = create<GameStore>()(
         if (state?.godFunctionBody) {
           const v = validateFunctionBody(state.godFunctionBody);
           if (v.valid) {
-            state.state.godRuleFunction = createSandboxedFunction(state.godFunctionBody);
+            try {
+              state.state.godRuleFunction = createSandboxedFunction(state.godFunctionBody);
+            } catch (err) {
+              console.warn('[gameStore] Failed to reconstruct godRuleFunction on rehydrate:', err);
+              state.godFunctionBody = null;
+            }
+          } else {
+            console.warn('[gameStore] Persisted godFunctionBody failed validation, clearing');
+            state.godFunctionBody = null;
           }
         }
-        // Reconstruct AIDealer if needed
-        if (state?.state && state.state.godRule) {
+        // Reconstruct AIDealer only if this is an AI God game (no compiled function body)
+        if (state?.state && state.state.godRule && !state.godFunctionBody) {
           const dealer = createAIDealer();
           state.aiGod = dealer;
         }
