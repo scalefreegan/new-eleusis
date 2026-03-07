@@ -26,6 +26,7 @@ interface GameStore {
   lastGodIndex: number; // Track which player was God last game for rotation
   trueProphetIndex: number; // Track True Prophet (becomes next God, -1 if none)
   godFunctionBody: string | null; // Persisted function body for human God compiled rules
+  errorMessage: string | null;
 
   // Actions
   dispatch: (action: GameAction) => void;
@@ -67,6 +68,7 @@ export const useGameStore = create<GameStore>()(
       lastGodIndex: -1, // -1 means no previous God, start with first player
       trueProphetIndex: -1, // -1 means no True Prophet
       godFunctionBody: null,
+      errorMessage: null,
 
   dispatch: (action: GameAction) => {
     const previousState = get().state;
@@ -592,7 +594,22 @@ export const useGameStore = create<GameStore>()(
   resolveNoPlayAsHumanGod: (valid: boolean, correctCardId?: string) => {
     const { state, dispatch } = get();
 
-    if (!state.noPlayDeclaration) {
+    const showError = (msg: string) => {
+      set({ errorMessage: msg });
+      setTimeout(() => set({ errorMessage: null }), 4000);
+    };
+
+    if (!state.noPlayDeclaration || state.mainLine.length === 0) {
+      return;
+    }
+
+    if (!state.godRuleFunction) {
+      showError('Cannot resolve no-play: no rule is set. Please set a rule first.');
+      return;
+    }
+
+    const player = state.players.find(p => p.id === state.noPlayDeclaration!.playerId);
+    if (!player) {
       return;
     }
 
@@ -616,26 +633,23 @@ export const useGameStore = create<GameStore>()(
       return;
     }
 
-    if (state.godRuleFunction && state.mainLine.length > 0) {
-      // Compiled rule - find a valid card automatically
-      const player = state.players.find(p => p.id === state.noPlayDeclaration!.playerId);
-      if (!player) return;
-      const lastCard = state.mainLine[state.mainLine.length - 1];
-      let correctCard: import('../engine/types').Card | undefined;
-      try {
-        correctCard = player.hand.find(card => state.godRuleFunction!(lastCard, card));
-      } catch (err) {
-        console.error('[gameStore] godRuleFunction threw in resolveNoPlayAsHumanGod:', err);
-        return;
-      }
-      if (!correctCard) {
-        // Compiled rule agrees no card is valid — resolve as valid
-        dispatch({ type: 'RESOLVE_NO_PLAY', valid: true });
-        return;
-      }
-      dispatch({
-        type: 'RESOLVE_NO_PLAY',
-        valid: false,
+    // Compiled rule - find a valid card automatically
+    const lastCard = state.mainLine[state.mainLine.length - 1];
+    let correctCard: import('../engine/types').Card | undefined;
+    try {
+      correctCard = player.hand.find(card => state.godRuleFunction!(lastCard, card));
+    } catch (err) {
+      showError(`Rule function error: ${err instanceof Error ? err.message : String(err)}`);
+      return;
+    }
+    if (!correctCard) {
+      showError('No valid card found in player\'s hand. The no-play declaration may be correct.');
+      return;
+    }
+
+    dispatch({
+      type: 'RESOLVE_NO_PLAY',
+      valid: false,
         correctCardId: correctCard.id,
       });
     }
@@ -652,6 +666,7 @@ export const useGameStore = create<GameStore>()(
       hasSavedGame: false,
       lastGodIndex: -1, // Reset God rotation
       trueProphetIndex: -1, // Reset True Prophet
+      errorMessage: null,
     });
   },
 
