@@ -38,6 +38,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
     getActiveLocalPlayer,
     getCurrentPlayer,
     aiGod,
+    errorMessage,
   } = useGameStore();
 
   const [handCollapsed, setHandCollapsed] = useState(false);
@@ -327,6 +328,25 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
             <span style={{ color: 'var(--text-dim)' }}>
               (Correct calls: {state.prophetCorrectCalls})
             </span>
+          </div>
+        )}
+
+        {/* Error Message Banner */}
+        {errorMessage && (
+          <div
+            style={{
+              padding: '0.75rem 1rem',
+              background: 'rgba(220, 38, 38, 0.3)',
+              border: '2px solid rgba(220, 38, 38, 0.6)',
+              borderRadius: '8px',
+              textAlign: 'center',
+              fontSize: '0.6rem',
+              color: '#fca5a5',
+              fontFamily: 'Press Start 2P, cursive',
+            }}
+            role="alert"
+          >
+            {errorMessage}
           </div>
         )}
 
