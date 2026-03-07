@@ -78,12 +78,12 @@ function extractJson(text: string): unknown {
   );
 }
 
-/** Run `claude -p <prompt> --output-format json --max-turns 1 --dangerously-skip-permissions` */
+/** Run `claude -p <prompt> --output-format json --max-turns 1` */
 function runClaudeCli(prompt: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const proc = spawn(
       'claude',
-      ['-p', prompt, '--output-format', 'json', '--max-turns', '1', '--dangerously-skip-permissions'],
+      ['-p', prompt, '--output-format', 'json', '--max-turns', '1'],
       { shell: false }
     );
 
