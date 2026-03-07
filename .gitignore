@@ -30,3 +30,9 @@ android/local.properties
 *.njsproj
 *.sln
 *.sw?
+
+# Gas Town (added by gt)
+.runtime/
+.claude/
+.beads/
+.logs/
