@@ -639,7 +639,7 @@ export const useGameStore = create<GameStore>()(
     try {
       correctCard = player.hand.find(card => state.godRuleFunction!(lastCard, card));
     } catch (err) {
-      console.error('[gameStore] godRuleFunction threw in resolveNoPlayAsHumanGod:', err);
+      showError(`Rule function error: ${err instanceof Error ? err.message : String(err)}`);
       return;
     }
     if (!correctCard) {
