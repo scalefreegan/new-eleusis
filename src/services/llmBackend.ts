@@ -191,42 +191,5 @@ export function disposeLLMBackend(): void {
   }
 }
 
-/** Extract the first JSON object from a string (strips markdown fences, preamble) */
-export function extractJsonFromOutput(text: string): unknown {
-  const errors: string[] = [];
-
-  // Direct parse
-  try { return JSON.parse(text); } catch (e) {
-    errors.push(`direct: ${e instanceof Error ? e.message : String(e)}`);
-  }
-
-  // Fenced code block ```json ... ```
-  const fenceMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-  if (fenceMatch) {
-    try { return JSON.parse(fenceMatch[1]); } catch (e) {
-      errors.push(`fence: ${e instanceof Error ? e.message : String(e)}`);
-    }
-  }
-
-  // First bare { ... }
-  const start = text.indexOf('{');
-  if (start !== -1) {
-    // Walk forward tracking brace depth
-    let depth = 0;
-    for (let i = start; i < text.length; i++) {
-      if (text[i] === '{') depth++;
-      else if (text[i] === '}') {
-        depth--;
-        if (depth === 0) {
-          try { return JSON.parse(text.slice(start, i + 1)); } catch (e) {
-            errors.push(`brace: ${e instanceof Error ? e.message : String(e)}`);
-          }
-          break;
-        }
-      }
-    }
-  }
-
-  console.warn('[llmBackend] extractJsonFromOutput failed. Strategies tried:', errors.join('; '), 'Input (500 chars):', text.slice(0, 500));
-  return null;
-}
+/** Re-export extractJson from the shared module for backward compatibility */
+export { extractJson as extractJsonFromOutput } from './extractJson';
