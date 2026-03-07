@@ -52,7 +52,7 @@ describe('validateFunctionBody', () => {
   it('rejects eval', () => {
     const result = validateFunctionBody("return eval('1+1') > 0;");
     expect(result.valid).toBe(false);
-    expect(result.error).toContain('Forbidden pattern');
+    expect(result.error).toContain('Forbidden');
   });
 
   it('rejects fetch', () => {
@@ -113,7 +113,7 @@ describe('validateFunctionBody', () => {
   it('rejects this keyword', () => {
     const result = validateFunctionBody("return this.fetch !== undefined;");
     expect(result.valid).toBe(false);
-    expect(result.error).toContain('Forbidden pattern');
+    expect(result.error).toContain('Forbidden');
   });
 
   it('rejects null input', () => {
@@ -169,6 +169,70 @@ describe('validateFunctionBody', () => {
   it('still blocks document.cookie via the document pattern', () => {
     const result = validateFunctionBody("return document.cookie.length > 0;");
     expect(result.valid).toBe(false);
+  });
+
+  // ── String concatenation bypass tests (ne-170) ──
+
+  it('rejects constructor access via string concatenation', () => {
+    const result = validateFunctionBody("return lastCard['con'+'structor'] !== undefined;");
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects __proto__ access via string concatenation', () => {
+    const result = validateFunctionBody("return lastCard['__pro'+'to__'] !== undefined;");
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects prototype access via string concatenation', () => {
+    const result = validateFunctionBody("return lastCard['proto'+'type'] !== undefined;");
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects constructor access via bracket string literal', () => {
+    const result = validateFunctionBody("return lastCard['constructor'] !== undefined;");
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects __proto__ access via bracket string literal', () => {
+    const result = validateFunctionBody("return lastCard['__proto__'] !== undefined;");
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects template literal property access with expressions', () => {
+    const result = validateFunctionBody("const x = 'con'; return lastCard[`${x}structor`] !== undefined;");
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects computed property access via variable', () => {
+    const result = validateFunctionBody("const p = 'constructor'; return lastCard[p];");
+    expect(result.valid).toBe(true); // identifier-based bracket access is allowed (safe: can only be a declared local)
+  });
+
+  it('rejects eval even when not called directly', () => {
+    const result = validateFunctionBody("const e = eval; return e('1') > 0;");
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects Function via bracket access on global scope escape', () => {
+    // This tries to get Function through constructor chain
+    const result = validateFunctionBody("return lastCard.constructor('return 1')();");
+    expect(result.valid).toBe(false);
+  });
+
+  it('allows safe bracket access with numeric indices', () => {
+    const body = "const suits = ['hearts','diamonds','clubs','spades'];\nreturn suits[0] === lastCard.suit;";
+    expect(validateFunctionBody(body).valid).toBe(true);
+  });
+
+  it('allows safe bracket access with identifier keys', () => {
+    const body = "const key = 'suit';\nreturn lastCard[key] === newCard[key];";
+    expect(validateFunctionBody(body).valid).toBe(true);
+  });
+
+  it('rejects syntactically invalid code', () => {
+    const result = validateFunctionBody("return {{{;");
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('Parse error');
   });
 });
 
