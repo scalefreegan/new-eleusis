@@ -1,9 +1,10 @@
 /**
- * Unit tests for extractJsonFromOutput from llmBackend.
+ * Unit tests for extractJson (shared JSON extraction utility).
+ * Tests the fix for ne-9yi: brace-matching now skips braces inside string literals.
  */
 
 import { describe, it, expect } from 'vitest';
-import { extractJsonFromOutput } from '../../src/services/llmBackend';
+import { extractJson as extractJsonFromOutput } from '../../src/services/extractJson';
 
 describe('extractJsonFromOutput', () => {
   it('parses plain JSON', () => {
@@ -70,5 +71,42 @@ describe('extractJsonFromOutput', () => {
       functionBody: 'return true;',
       ambiguities: ['Is Ace high or low?'],
     });
+  });
+
+  // --- Bug ne-9yi: braces inside string literals ---
+
+  it('handles braces inside string values (brace-in-string bug)', () => {
+    const input = 'Here:\n{"functionBody": "const obj = {a: 1}; return obj.a === 1;"}';
+    const result = extractJsonFromOutput(input) as Record<string, unknown>;
+    expect(result).toEqual({
+      functionBody: 'const obj = {a: 1}; return obj.a === 1;',
+    });
+  });
+
+  it('handles unbalanced braces inside strings', () => {
+    const input = 'Output:\n{"functionBody": "if (x) { return true; }", "note": "uses { and }"}';
+    const result = extractJsonFromOutput(input) as Record<string, unknown>;
+    expect(result).toEqual({
+      functionBody: 'if (x) { return true; }',
+      note: 'uses { and }',
+    });
+  });
+
+  it('handles closing brace only inside a string', () => {
+    const input = 'Result:\n{"functionBody": "return \\"}\\";"}';
+    const result = extractJsonFromOutput(input) as Record<string, unknown>;
+    expect(result).toEqual({ functionBody: 'return "}";' });
+  });
+
+  it('handles opening brace only inside a string', () => {
+    const input = 'Result:\n{"functionBody": "return \\"{\\";"}';
+    const result = extractJsonFromOutput(input) as Record<string, unknown>;
+    expect(result).toEqual({ functionBody: 'return "{";' });
+  });
+
+  it('handles escaped quotes adjacent to braces in strings', () => {
+    const input = '{"msg": "she said \\"{\\" and \\"}\\"."}';
+    const result = extractJsonFromOutput(input) as Record<string, unknown>;
+    expect(result).toEqual({ msg: 'she said "{" and "}".' });
   });
 });

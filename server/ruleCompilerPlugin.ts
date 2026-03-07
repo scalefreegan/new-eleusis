@@ -50,13 +50,27 @@ function extractJson(text: string): unknown {
     }
   }
 
-  // First bare { ... } — track brace depth to find the matching close
+  // First bare { ... } — track brace depth to find the matching close,
+  // skipping braces inside JSON string literals
   const bracePos = text.indexOf('{');
   if (bracePos !== -1) {
     let depth = 0;
+    let inString = false;
     for (let i = bracePos; i < text.length; i++) {
-      if (text[i] === '{') depth++;
-      else if (text[i] === '}') {
+      const ch = text[i];
+      if (inString) {
+        if (ch === '\\') {
+          i++; // skip escaped character
+        } else if (ch === '"') {
+          inString = false;
+        }
+        continue;
+      }
+      if (ch === '"') {
+        inString = true;
+      } else if (ch === '{') {
+        depth++;
+      } else if (ch === '}') {
         depth--;
         if (depth === 0) {
           try {

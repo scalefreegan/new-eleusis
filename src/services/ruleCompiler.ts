@@ -9,6 +9,8 @@
  * Defaults to 'local' when the cloud endpoint is unavailable (production/Android).
  */
 
+import * as acorn from 'acorn';
+import * as acornWalk from 'acorn-walk';
 import { getRankValue, getSuitColor, isFaceCard, isEvenRank } from '../engine/deck';
 import type { Card } from '../engine/types';
 import { createLCG, randomCard } from './cardSampling';
@@ -87,43 +89,33 @@ const HELPERS = {
 };
 
 // ────────────────────────────────────────────
-// Security: forbidden patterns
+// Security: AST-based validation
 // ────────────────────────────────────────────
 
-const FORBIDDEN_PATTERNS = [
-  /\beval\s*\(/,
-  /\bFunction\s*\(/,
-  /\bfetch\s*\(/,
-  /\bwindow\b/,
-  /\bdocument\b/,
-  /\bimport\s*\(/,
-  /\brequire\s*\(/,
-  /\bglobalThis\b/,
-  /\bprocess\b/,
-  /\bXMLHttpRequest\b/,
-  /\bWebSocket\b/,
-  /\bsetTimeout\s*\(/,
-  /\bsetInterval\s*\(/,
-  /\bclearTimeout\s*\(/,
-  /\bclearInterval\s*\(/,
-  /\blocalStorage\b/,
-  /\bsessionStorage\b/,
-  /\bIndexedDB\b/,
-  /\bnavigator\b/,
-  /\bperformance\b/,
-  /\bcrypto\b/,
-  /\batob\s*\(/,
-  /\bthis\b/,
-  /\bbtoa\s*\(/,
-  /\bBlob\b/,
-  /\bWorker\b/,
-  /\bsharedArrayBuffer\b/i,
-  /\b__proto__\b/,
-  /\bprototype\b/,
-  /\bconstructor\b/,
-  /\bObject\s*\.\s*assign\b/,
-  /\bObject\s*\.\s*defineProperty\b/,
-];
+/** Identifiers that must never appear as free references in the function body. */
+const FORBIDDEN_GLOBALS = new Set([
+  'eval', 'Function', 'fetch', 'window', 'document', 'globalThis',
+  'process', 'XMLHttpRequest', 'WebSocket', 'setTimeout', 'setInterval',
+  'clearTimeout', 'clearInterval', 'localStorage', 'sessionStorage',
+  'IndexedDB', 'navigator', 'performance', 'crypto', 'atob', 'btoa',
+  'Blob', 'Worker', 'SharedArrayBuffer', 'importScripts',
+  'require', 'Proxy', 'Reflect',
+]);
+
+/** Property names that must never be accessed (dot or bracket). */
+const FORBIDDEN_PROPERTIES = new Set([
+  '__proto__', 'prototype', 'constructor',
+]);
+
+/** Allowed top-level identifiers (function params + injected helpers). */
+const ALLOWED_REFS = new Set([
+  'lastCard', 'newCard', 'helpers',
+  // Standard safe globals needed for card logic
+  'Math', 'Array', 'String', 'Number', 'Boolean', 'parseInt', 'parseFloat',
+  'isNaN', 'isFinite', 'undefined', 'NaN', 'Infinity', 'JSON',
+  'Object',
+  'true', 'false', 'null',
+]);
 
 export function validateFunctionBody(body: string): { valid: boolean; error?: string } {
   if (typeof body !== 'string' || body.trim().length === 0) {
@@ -132,10 +124,152 @@ export function validateFunctionBody(body: string): { valid: boolean; error?: st
   if (!body.includes('return')) {
     return { valid: false, error: 'Function body must contain a return statement' };
   }
-  for (const pattern of FORBIDDEN_PATTERNS) {
-    if (pattern.test(body)) {
-      return { valid: false, error: `Forbidden pattern detected: ${pattern.source}` };
-    }
+
+  // Parse as a function body by wrapping in an async function (never executed)
+  let ast: acorn.Node;
+  try {
+    ast = acorn.parse(
+      `(function(lastCard, newCard, helpers) { 'use strict';\n${body}\n})`,
+      { ecmaVersion: 2022, sourceType: 'script' }
+    );
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { valid: false, error: `Parse error: ${msg}` };
+  }
+
+  // Collect locally declared variable names so we don't flag them as forbidden globals
+  const declaredLocals = new Set<string>();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const asAny = (node: acorn.Node) => node as any;
+
+  // First pass: collect all locally declared identifiers
+  acornWalk.simple(ast, {
+    VariableDeclarator(node: acorn.Node) {
+      const n = asAny(node);
+      if (n.id?.type === 'Identifier') {
+        declaredLocals.add(n.id.name);
+      }
+    },
+    FunctionDeclaration(node: acorn.Node) {
+      const n = asAny(node);
+      if (n.id?.type === 'Identifier') {
+        declaredLocals.add(n.id.name);
+      }
+      for (const param of n.params ?? []) {
+        if (param.type === 'Identifier') declaredLocals.add(param.name);
+      }
+    },
+    FunctionExpression(node: acorn.Node) {
+      const n = asAny(node);
+      for (const param of n.params ?? []) {
+        if (param.type === 'Identifier') declaredLocals.add(param.name);
+      }
+    },
+    ArrowFunctionExpression(node: acorn.Node) {
+      const n = asAny(node);
+      for (const param of n.params ?? []) {
+        if (param.type === 'Identifier') declaredLocals.add(param.name);
+      }
+    },
+  });
+
+  let error: string | undefined;
+
+  acornWalk.simple(ast, {
+    // Block `this` expressions
+    ThisExpression(_node: acorn.Node) {
+      if (!error) error = 'Forbidden: this expression';
+    },
+
+    // Block import expressions: import('...')
+    ImportExpression(_node: acorn.Node) {
+      if (!error) error = 'Forbidden: dynamic import()';
+    },
+
+    // Check all identifier references
+    Identifier(node: acorn.Node) {
+      if (error) return;
+      const n = asAny(node);
+      const name: string = n.name;
+      if (FORBIDDEN_GLOBALS.has(name) && !declaredLocals.has(name)) {
+        error = `Forbidden global reference: ${name}`;
+      }
+    },
+
+    // Check property access (both dot and bracket notation)
+    MemberExpression(node: acorn.Node) {
+      if (error) return;
+      const n = asAny(node);
+
+      // Dot access: obj.constructor
+      if (!n.computed && n.property?.type === 'Identifier') {
+        if (FORBIDDEN_PROPERTIES.has(n.property.name)) {
+          error = `Forbidden property access: .${n.property.name}`;
+        }
+      }
+
+      // Bracket access with string literal: obj['constructor']
+      if (n.computed && n.property?.type === 'Literal' && typeof n.property.value === 'string') {
+        if (FORBIDDEN_PROPERTIES.has(n.property.value)) {
+          error = `Forbidden property access: ['${n.property.value}']`;
+        }
+      }
+
+      // Bracket access with template literal: obj[`constructor`]
+      if (n.computed && n.property?.type === 'TemplateLiteral') {
+        // Only allow template literals with no expressions (pure string)
+        if (n.property.expressions.length === 0 && n.property.quasis.length === 1) {
+          const val = n.property.quasis[0].value.cooked;
+          if (typeof val === 'string' && FORBIDDEN_PROPERTIES.has(val)) {
+            error = `Forbidden property access: [\`${val}\`]`;
+          }
+        }
+        // Template literals with expressions in bracket access are blocked
+        // since they could construct forbidden property names at runtime
+        if (n.property.expressions.length > 0) {
+          error = 'Forbidden: computed property access with template expression';
+        }
+      }
+
+      // Bracket access with any non-trivial expression (binary ops, calls, etc.)
+      // that could construct a forbidden property name at runtime.
+      // Allow: literal numbers, literal strings (checked above), identifiers (for array indexing)
+      if (n.computed && n.property) {
+        const ptype = n.property.type;
+        const safeTypes = new Set(['Literal', 'Identifier', 'UnaryExpression']);
+        if (!safeTypes.has(ptype)) {
+          error = `Forbidden: computed property access with ${ptype}`;
+        }
+      }
+    },
+
+    // Block Object.assign, Object.defineProperty, etc.
+    CallExpression(node: acorn.Node) {
+      if (error) return;
+      const n = asAny(node);
+      if (
+        n.callee?.type === 'MemberExpression' &&
+        !n.callee.computed &&
+        n.callee.object?.type === 'Identifier' &&
+        n.callee.object.name === 'Object' &&
+        n.callee.property?.type === 'Identifier'
+      ) {
+        const method = n.callee.property.name;
+        const forbidden = new Set([
+          'assign', 'defineProperty', 'defineProperties',
+          'setPrototypeOf', 'getPrototypeOf', 'create',
+          'getOwnPropertyDescriptor', 'getOwnPropertyDescriptors',
+        ]);
+        if (forbidden.has(method)) {
+          error = `Forbidden: Object.${method}()`;
+        }
+      }
+    },
+  });
+
+  if (error) {
+    return { valid: false, error };
   }
   return { valid: true };
 }
