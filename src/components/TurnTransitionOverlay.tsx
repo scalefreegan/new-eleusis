@@ -51,7 +51,7 @@ export const TurnTransitionOverlay: React.FC<TurnTransitionOverlayProps> = ({
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.3 }}
             style={{
-              fontSize: '1.25rem',
+              fontSize: '2.5rem',
               color: 'var(--accent-gold)',
               textShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
               marginBottom: '2rem',
@@ -66,7 +66,7 @@ export const TurnTransitionOverlay: React.FC<TurnTransitionOverlayProps> = ({
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.3 }}
             style={{
-              fontSize: '0.75rem',
+              fontSize: '1.5rem',
               color: 'var(--text-light)',
               marginBottom: '3rem',
               lineHeight: '1.6',
@@ -89,7 +89,7 @@ export const TurnTransitionOverlay: React.FC<TurnTransitionOverlayProps> = ({
               border: '3px solid var(--accent-gold)',
               borderRadius: '12px',
               color: 'var(--text-light)',
-              fontSize: '1rem',
+              fontSize: '2rem',
               cursor: 'pointer',
               fontFamily: 'Press Start 2P, cursive',
               transition: 'all 0.2s',
@@ -114,7 +114,7 @@ export const TurnTransitionOverlay: React.FC<TurnTransitionOverlayProps> = ({
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8, duration: 0.3 }}
             style={{
-              fontSize: '0.5rem',
+              fontSize: '1rem',
               color: 'var(--text-dim)',
               marginTop: '2rem',
               lineHeight: '1.5',

@@ -29,8 +29,8 @@
   /* Responsive card sizing (Desktop default) */
   --card-width: 80px;
   --card-height: 112px;
-  --card-font-size: 1.25rem;
-  --card-suit-size: 1.5rem;
+  --card-font-size: 2.5rem;
+  --card-suit-size: 3rem;
   --card-gap: 0.5rem;
 }
 
@@ -136,13 +136,13 @@ body {
   :root {
     --card-width: 60px;
     --card-height: 84px;
-    --card-font-size: 1rem;
-    --card-suit-size: 1.25rem;
+    --card-font-size: 2rem;
+    --card-suit-size: 2.5rem;
     --card-gap: 0.4rem;
   }
 
   body {
-    font-size: 14px;
+    font-size: 28px;
   }
 
   /* Adjust game screen padding */
@@ -161,13 +161,13 @@ body {
   :root {
     --card-width: 50px;
     --card-height: 70px;
-    --card-font-size: 0.85rem;
-    --card-suit-size: 1rem;
+    --card-font-size: 1.7rem;
+    --card-suit-size: 2rem;
     --card-gap: 0.3rem;
   }
 
   body {
-    font-size: 12px;
+    font-size: 24px;
   }
 
   /* Further reduce spacing */
@@ -179,7 +179,7 @@ body {
   /* Make buttons smaller but keep min touch target (48dp Android guideline) */
   button {
     padding: 0.5rem 0.75rem !important;
-    font-size: 0.5rem !important;
+    font-size: 1rem !important;
     min-height: 44px;
   }
 
