@@ -137,7 +137,10 @@ export function checkInvariants(
   }
 
   // 6. Current player is not God or expelled when phase is 'playing'
-  if (next.phase === 'playing' && next.players.length > 0) {
+  // Skip for JUDGE_CARD and RESOLVE_NO_PLAY: these mid-turn actions can transition
+  // back to 'playing' before END_TURN advances past expelled/God players.
+  const midTurnActions = ['JUDGE_CARD', 'RESOLVE_NO_PLAY'];
+  if (next.phase === 'playing' && next.players.length > 0 && !midTurnActions.includes(action.type)) {
     const currentPlayer = next.players[next.currentPlayerIndex];
     if (currentPlayer) {
       if (currentPlayer.isGod) {
