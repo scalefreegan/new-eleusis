@@ -185,10 +185,10 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
       >
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <div style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', marginBottom: '0.5rem' }}>
+          <div style={{ fontSize: '1.3rem', color: 'var(--accent-gold)', marginBottom: '0.5rem' }}>
             RULE COMPILER
           </div>
-          <div style={{ fontSize: '0.45rem', color: 'var(--text-dim)', fontStyle: 'italic', lineHeight: 1.5 }}>
+          <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)', fontStyle: 'italic', lineHeight: 1.5 }}>
             "{ruleText.slice(0, 120)}{ruleText.length > 120 ? '…' : ''}"
           </div>
         </div>
@@ -196,7 +196,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
         {/* Step: Backend selection */}
         {step === 'backendSelect' && (
           <div>
-            <div style={{ fontSize: '0.5rem', color: 'var(--accent-gold)', marginBottom: '1rem' }}>
+            <div style={{ fontSize: '1.0rem', color: 'var(--accent-gold)', marginBottom: '1rem' }}>
               Choose AI backend
             </div>
 
@@ -211,14 +211,14 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
                 textAlign: 'left',
               }}
             >
-              <div style={{ fontSize: '0.5rem', color: 'var(--text-light)', marginBottom: '0.4rem' }}>
+              <div style={{ fontSize: '1.0rem', color: 'var(--text-light)', marginBottom: '0.4rem' }}>
                 ⬡ Local AI (recommended)
               </div>
-              <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
                 Qwen2.5-Coder 1.5B · runs in browser · works offline &amp; on Android
                 {webGPUAvailable && <span style={{ color: '#88ff88' }}> · WebGPU available (fast)</span>}
               </div>
-              <div style={{ fontSize: '0.35rem', color: '#ffaa44', marginTop: '0.3rem' }}>
+              <div style={{ fontSize: '0.7rem', color: '#ffaa44', marginTop: '0.3rem' }}>
                 ~900 MB download on first use (cached)
               </div>
             </button>
@@ -233,7 +233,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
                     onChange={(e) => setPreferWebGPU(e.target.checked)}
                     style={{ accentColor: 'var(--accent-purple)' }}
                   />
-                  <span style={{ fontSize: '0.35rem', color: 'var(--text-dim)' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
                     Use WebGPU acceleration (3–5× faster, desktop Chrome/Edge only)
                   </span>
                 </label>
@@ -254,10 +254,10 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
                 cursor: cloudAvailable === false ? 'not-allowed' : 'pointer',
               }}
             >
-              <div style={{ fontSize: '0.5rem', color: 'var(--text-light)', marginBottom: '0.4rem' }}>
+              <div style={{ fontSize: '1.0rem', color: 'var(--text-light)', marginBottom: '0.4rem' }}>
                 ☁ Cloud AI (Claude)
               </div>
-              <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
                 Highest quality · requires Claude CLI &amp; dev server · instant
                 {cloudAvailable === false && (
                   <span style={{ color: '#ff6644' }}> · not available (run npm run dev)</span>
@@ -280,13 +280,13 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
         {/* Step: Downloading model */}
         {step === 'downloading' && (
           <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
-            <div style={{ fontSize: '1.5rem', marginBottom: '1rem', animation: 'pulse 1.5s infinite' }}>⬇</div>
-            <div style={{ fontSize: '0.5rem', color: 'var(--text-light)', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: '3.0rem', marginBottom: '1rem', animation: 'pulse 1.5s infinite' }}>⬇</div>
+            <div style={{ fontSize: '1.0rem', color: 'var(--text-light)', marginBottom: '0.5rem' }}>
               Loading AI model…
             </div>
             {downloadProgress && (
               <>
-                <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
                   {downloadProgress.status}
                 </div>
                 {downloadProgress.progress >= 0 && (
@@ -311,14 +311,14 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
                   </div>
                 )}
                 {downloadProgress.total > 0 && (
-                  <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
                     {(downloadProgress.loaded / 1_048_576).toFixed(0)} /&nbsp;
                     {(downloadProgress.total / 1_048_576).toFixed(0)} MB
                   </div>
                 )}
               </>
             )}
-            <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)', marginTop: '1rem' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '1rem' }}>
               First-time download ~900 MB · cached for future sessions
             </div>
             <button
@@ -339,15 +339,15 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
         {/* Step: Compiling */}
         {step === 'compiling' && (
           <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem', animation: 'pulse 1.5s infinite' }}>⚙</div>
-            <div style={{ fontSize: '0.55rem', color: 'var(--text-light)' }}>
+            <div style={{ fontSize: '3.0rem', marginBottom: '1rem', animation: 'pulse 1.5s infinite' }}>⚙</div>
+            <div style={{ fontSize: '1.1rem', color: 'var(--text-light)' }}>
               Analyzing your rule…
             </div>
-            <div style={{ fontSize: '0.4rem', color: 'var(--text-dim)', marginTop: '0.5rem' }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.5rem' }}>
               {backend === 'local' ? 'Local AI is generating a deterministic function' : 'Claude is generating a deterministic function'}
             </div>
             {downloadProgress && (
-              <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)', marginTop: '0.5rem' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.5rem' }}>
                 {downloadProgress.status}
               </div>
             )}
@@ -357,10 +357,10 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
         {/* Step: Ambiguity */}
         {step === 'ambiguity' && compiled && (
           <div>
-            <div style={{ fontSize: '0.55rem', color: '#ffcc00', marginBottom: '1rem' }}>
+            <div style={{ fontSize: '1.1rem', color: '#ffcc00', marginBottom: '1rem' }}>
               ⚠ Clarification needed
             </div>
-            <div style={{ fontSize: '0.4rem', color: 'var(--text-dim)', marginBottom: '1rem', lineHeight: 1.6 }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '1rem', lineHeight: 1.6 }}>
               The compiler has questions about your rule:
             </div>
             {compiled.ambiguities.map((q, i) => (
@@ -372,7 +372,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
                   border: '1px solid rgba(255, 200, 0, 0.3)',
                   borderRadius: '6px',
                   marginBottom: '0.5rem',
-                  fontSize: '0.45rem',
+                  fontSize: '0.9rem',
                   color: 'var(--text-light)',
                   lineHeight: 1.5,
                 }}
@@ -393,7 +393,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
                 border: '1px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '6px',
                 color: 'var(--text-light)',
-                fontSize: '0.45rem',
+                fontSize: '0.9rem',
                 fontFamily: 'Press Start 2P, cursive',
                 resize: 'vertical',
                 boxSizing: 'border-box',
@@ -413,7 +413,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
         {/* Step: Confirmation */}
         {step === 'confirmation' && compiled && (
           <div>
-            <div style={{ fontSize: '0.5rem', color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>
+            <div style={{ fontSize: '1.0rem', color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>
               Review examples — verify the rule is correct
             </div>
             {testResults && !testResults.passed && (
@@ -423,7 +423,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
                   background: 'rgba(255, 100, 0, 0.15)',
                   border: '1px solid rgba(255, 100, 0, 0.5)',
                   borderRadius: '6px',
-                  fontSize: '0.4rem',
+                  fontSize: '0.8rem',
                   color: '#ff8844',
                   marginBottom: '1rem',
                   lineHeight: 1.5,
@@ -463,9 +463,9 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
         {/* Step: Ready */}
         {step === 'ready' && (
           <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>✓</div>
-            <div style={{ fontSize: '0.6rem', color: '#00ff88' }}>Rule compiled!</div>
-            <div style={{ fontSize: '0.4rem', color: 'var(--text-dim)', marginTop: '0.5rem' }}>
+            <div style={{ fontSize: '3.0rem', marginBottom: '1rem' }}>✓</div>
+            <div style={{ fontSize: '1.2rem', color: '#00ff88' }}>Rule compiled!</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.5rem' }}>
               Starting game…
             </div>
           </div>
@@ -474,7 +474,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
         {/* Step: Error */}
         {step === 'error' && (
           <div>
-            <div style={{ fontSize: '0.55rem', color: '#ff4444', marginBottom: '1rem' }}>
+            <div style={{ fontSize: '1.1rem', color: '#ff4444', marginBottom: '1rem' }}>
               ✗ Compilation failed
             </div>
             <div
@@ -483,7 +483,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
                 background: 'rgba(255, 0, 0, 0.1)',
                 border: '1px solid rgba(255, 0, 0, 0.3)',
                 borderRadius: '6px',
-                fontSize: '0.4rem',
+                fontSize: '0.8rem',
                 color: 'var(--text-dim)',
                 fontFamily: 'monospace',
                 lineHeight: 1.5,
@@ -519,7 +519,7 @@ function btnStyle(bg: string): React.CSSProperties {
     border: '1px solid rgba(255,255,255,0.2)',
     borderRadius: '6px',
     color: 'var(--text-light)',
-    fontSize: '0.45rem',
+    fontSize: '0.9rem',
     cursor: 'pointer',
     fontFamily: 'Press Start 2P, cursive',
     transition: 'all 0.2s',

@@ -137,7 +137,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
       >
         <h1
           style={{
-            fontSize: '1.5rem',
+            fontSize: '3.0rem',
             color: 'var(--accent-gold)',
             textShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
             marginBottom: '1rem',
@@ -149,7 +149,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
 
         <p
           style={{
-            fontSize: '0.65rem',
+            fontSize: '1.3rem',
             color: 'var(--text-dim)',
             marginBottom: '2rem',
             textAlign: 'center',
@@ -164,7 +164,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
           <label
             style={{
               display: 'block',
-              fontSize: '0.65rem',
+              fontSize: '1.3rem',
               color: 'var(--text-dim)',
               marginBottom: '0.75rem',
             }}
@@ -182,7 +182,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                 border: '2px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '8px',
                 color: 'var(--text-light)',
-                fontSize: '0.5rem',
+                fontSize: '1.0rem',
                 cursor: 'pointer',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
@@ -200,7 +200,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                 border: '2px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '8px',
                 color: 'var(--text-light)',
-                fontSize: '0.5rem',
+                fontSize: '1.0rem',
                 cursor: 'pointer',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
@@ -218,7 +218,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                 border: '2px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '8px',
                 color: 'var(--text-light)',
-                fontSize: '0.5rem',
+                fontSize: '1.0rem',
                 cursor: 'pointer',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
@@ -234,14 +234,14 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
           <label
             style={{
               display: 'block',
-              fontSize: '0.65rem',
+              fontSize: '1.3rem',
               color: 'var(--accent-gold)',
               marginBottom: '0.75rem',
             }}
           >
             GOD {isTrueProphetGod
-              ? <span style={{ fontSize: '0.45rem', color: 'var(--accent-gold)' }}>(True Prophet!)</span>
-              : lastGodIndex >= 0 && <span style={{ fontSize: '0.45rem', color: 'var(--text-dim)' }}>(rotates each game)</span>
+              ? <span style={{ fontSize: '0.9rem', color: 'var(--accent-gold)' }}>(True Prophet!)</span>
+              : lastGodIndex >= 0 && <span style={{ fontSize: '0.9rem', color: 'var(--text-dim)' }}>(rotates each game)</span>
             }
           </label>
           <div
@@ -264,7 +264,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                   border: '2px solid rgba(255, 255, 255, 0.2)',
                   borderRadius: '8px',
                   color: 'var(--text-light)',
-                  fontSize: '0.65rem',
+                  fontSize: '1.3rem',
                   fontFamily: 'Press Start 2P, cursive',
                 }}
                 placeholder="God Name"
@@ -272,7 +272,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
               {nextGodIndex === 0 && (
                 <div
                   style={{
-                    fontSize: '0.5rem',
+                    fontSize: '1.0rem',
                     color: 'var(--accent-gold)',
                     whiteSpace: 'nowrap',
                     fontWeight: 'bold',
@@ -294,7 +294,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                         : '2px solid rgba(255, 255, 255, 0.2)',
                     borderRadius: '8px',
                     color: 'var(--text-light)',
-                    fontSize: '0.5rem',
+                    fontSize: '1.0rem',
                     cursor: 'pointer',
                     fontFamily: 'Press Start 2P, cursive',
                     transition: 'all 0.2s',
@@ -314,7 +314,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                         : '2px solid rgba(255, 255, 255, 0.2)',
                     borderRadius: '8px',
                     color: 'var(--text-light)',
-                    fontSize: '0.5rem',
+                    fontSize: '1.0rem',
                     cursor: 'pointer',
                     fontFamily: 'Press Start 2P, cursive',
                     transition: 'all 0.2s',
@@ -329,17 +329,17 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
             {dealerConfig.type === 'human' && (
               <div style={{ marginTop: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <label style={{ fontSize: '0.5rem', color: 'var(--text-dim)' }}>
+                  <label style={{ fontSize: '1.0rem', color: 'var(--text-dim)' }}>
                     SECRET RULE (OPTIONAL)
                   </label>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     {!compilerLoading && compilerAvailable && dealerRule.trim().length > 0 && (
-                      <div style={{ fontSize: '0.35rem', color: '#00cc88' }}>
+                      <div style={{ fontSize: '0.7rem', color: '#00cc88' }}>
                         ⚡ Will compile on start
                       </div>
                     )}
                     {!compilerLoading && !compilerAvailable && (
-                      <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
                         Manual judgment only
                       </div>
                     )}
@@ -349,7 +349,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                         background: 'none',
                         border: 'none',
                         color: 'var(--accent-blue)',
-                        fontSize: '0.5rem',
+                        fontSize: '1.0rem',
                         cursor: 'pointer',
                         fontFamily: 'Press Start 2P, cursive',
                       }}
@@ -373,14 +373,14 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                     borderRadius: '8px',
                     color: showRule ? 'var(--text-light)' : 'transparent',
                     textShadow: showRule ? 'none' : '0 0 8px var(--text-light)',
-                    fontSize: '0.5rem',
+                    fontSize: '1.0rem',
                     fontFamily: 'Press Start 2P, cursive',
                     resize: 'vertical',
                     boxSizing: 'border-box',
                   }}
                 />
                 {compilerAvailable && dealerRule.trim().length > 0 && (
-                  <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)', marginTop: '0.3rem', lineHeight: 1.5 }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.3rem', lineHeight: 1.5 }}>
                     Claude will compile this into a deterministic function when you start.
                     You'll review examples before the game begins.
                   </div>
@@ -395,7 +395,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
           <label
             style={{
               display: 'block',
-              fontSize: '0.65rem',
+              fontSize: '1.3rem',
               color: 'var(--text-dim)',
               marginBottom: '0.75rem',
             }}
@@ -434,7 +434,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                       border: '2px solid rgba(255, 255, 255, 0.2)',
                       borderRadius: '8px',
                       color: 'var(--text-light)',
-                      fontSize: '0.65rem',
+                      fontSize: '1.3rem',
                       fontFamily: 'Press Start 2P, cursive',
                     }}
                     placeholder="Player Name"
@@ -442,7 +442,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                   {isNextGod && (
                     <div
                       style={{
-                        fontSize: '0.5rem',
+                        fontSize: '1.0rem',
                         color: 'var(--accent-gold)',
                         whiteSpace: 'nowrap',
                         fontWeight: 'bold',
@@ -464,7 +464,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                             : '2px solid rgba(255, 255, 255, 0.2)',
                         borderRadius: '8px',
                         color: 'var(--text-light)',
-                        fontSize: '0.5rem',
+                        fontSize: '1.0rem',
                         cursor: 'pointer',
                         fontFamily: 'Press Start 2P, cursive',
                         transition: 'all 0.2s',
@@ -484,7 +484,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                             : '2px solid rgba(255, 255, 255, 0.2)',
                         borderRadius: '8px',
                         color: 'var(--text-light)',
-                        fontSize: '0.5rem',
+                        fontSize: '1.0rem',
                         cursor: 'pointer',
                         fontFamily: 'Press Start 2P, cursive',
                         transition: 'all 0.2s',
@@ -501,7 +501,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                         border: '2px solid rgba(220, 20, 60, 0.5)',
                         borderRadius: '8px',
                         color: playerList.length <= 2 ? 'var(--text-dim)' : '#dc143c',
-                        fontSize: '0.65rem',
+                        fontSize: '1.3rem',
                         cursor: playerList.length <= 2 ? 'not-allowed' : 'pointer',
                         fontFamily: 'Press Start 2P, cursive',
                         opacity: playerList.length <= 2 ? 0.5 : 1,
@@ -528,7 +528,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
               border: '2px dashed rgba(255, 255, 255, 0.3)',
               borderRadius: '8px',
               color: playerList.length >= 7 ? 'var(--text-dim)' : 'var(--text-light)',
-              fontSize: '0.6rem',
+              fontSize: '1.2rem',
               cursor: playerList.length >= 7 ? 'not-allowed' : 'pointer',
               fontFamily: 'Press Start 2P, cursive',
               opacity: playerList.length >= 7 ? 0.5 : 1,
@@ -551,7 +551,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
               border: '2px solid var(--accent-purple)',
               borderRadius: '8px',
               color: 'var(--bg-deep)',
-              fontSize: '0.75rem',
+              fontSize: '1.5rem',
               cursor: 'pointer',
               fontFamily: 'Press Start 2P, cursive',
               transition: 'all 0.2s',
@@ -581,7 +581,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
             border: '2px solid var(--accent-gold)',
             borderRadius: '8px',
             color: 'var(--text-light)',
-            fontSize: '0.75rem',
+            fontSize: '1.5rem',
             cursor: 'pointer',
             fontFamily: 'Press Start 2P, cursive',
             transition: 'all 0.2s',
@@ -606,7 +606,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
             padding: '1rem',
             background: 'rgba(0, 0, 0, 0.3)',
             borderRadius: '8px',
-            fontSize: '0.5rem',
+            fontSize: '1.0rem',
             color: 'var(--text-dim)',
             lineHeight: '1.6',
           }}
@@ -634,7 +634,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
               border: '2px solid rgba(255, 255, 255, 0.2)',
               borderRadius: '8px',
               color: 'var(--text-light)',
-              fontSize: '0.6rem',
+              fontSize: '1.2rem',
               cursor: 'pointer',
               fontFamily: 'Press Start 2P, cursive',
               transition: 'all 0.2s',
@@ -659,7 +659,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
               border: '2px solid rgba(255, 255, 255, 0.2)',
               borderRadius: '8px',
               color: 'var(--text-light)',
-              fontSize: '0.6rem',
+              fontSize: '1.2rem',
               cursor: 'pointer',
               fontFamily: 'Press Start 2P, cursive',
               transition: 'all 0.2s',
