@@ -53,6 +53,7 @@ const MAX_NEW_TOKENS = 512;
 // ─────────────────────────────────────────────────────────────────────────────
 
 let _singleton: LLMBackend | null = null;
+let _initPromise: Promise<LLMBackend> | null = null;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Capability detection
@@ -168,16 +169,30 @@ async function createTransformersBackend(
  * is accepted but currently ignored.
  */
 export async function getLLMBackend(opts: LLMBackendOptions = {}): Promise<LLMBackend> {
-  // Reuse singleton
   if (_singleton) {
     return _singleton;
+  }
+
+  if (_initPromise) {
+    return _initPromise;
   }
 
   // TODO: WebLLM (WebGPU) acceleration — install @mlc-ai/web-llm and wire up
   // createWebLLMBackend() here when opts.preferWebGPU && isWebGPUAvailable().
 
-  _singleton = await createTransformersBackend(opts);
-  return _singleton;
+  _initPromise = createTransformersBackend(opts).then(
+    (backend) => {
+      _singleton = backend;
+      _initPromise = null;
+      return backend;
+    },
+    (error) => {
+      _initPromise = null;
+      throw error;
+    }
+  );
+
+  return _initPromise;
 }
 
 /**
@@ -185,10 +200,17 @@ export async function getLLMBackend(opts: LLMBackendOptions = {}): Promise<LLMBa
  * Call this if you want to free WASM memory.
  */
 export function disposeLLMBackend(): void {
+  _initPromise = null;
   if (_singleton) {
     _singleton.dispose();
     _singleton = null;
   }
+}
+
+/** Reset internal state — only for use in tests. */
+export function _resetForTesting(): void {
+  _singleton = null;
+  _initPromise = null;
 }
 
 /** Re-export extractJson from the shared module for backward compatibility */
