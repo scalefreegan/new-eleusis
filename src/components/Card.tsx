@@ -146,43 +146,6 @@ export const Card: React.FC<CardProps> = ({ suit, rank, onClick, className = '',
         </div>
       </div>
 
-      {/* Corner indicators */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '8px',
-          left: '8px',
-          fontSize: '1.5rem',
-          color: suitColor,
-          lineHeight: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '2px',
-        }}
-      >
-        <span>{rank}</span>
-        <span>{suit}</span>
-      </div>
-
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '8px',
-          right: '8px',
-          fontSize: '1.5rem',
-          color: suitColor,
-          lineHeight: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '2px',
-          transform: 'rotate(180deg)',
-        }}
-      >
-        <span>{rank}</span>
-        <span>{suit}</span>
-      </div>
     </motion.div>
   );
 };

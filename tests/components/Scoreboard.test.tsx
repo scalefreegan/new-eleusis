@@ -110,8 +110,8 @@ describe('Scoreboard', () => {
 
     // Score is calculated live, not from player.score field
     // With 5 cards in hand, score would be: highCount (5) - hand (5) = 0
-    expect(container.textContent).toContain('Scr: 0');
-    expect(container.textContent).toContain('Cds: 5');
+    expect(container.textContent).toContain('Score: 0');
+    expect(container.textContent).toContain('Cards: 5');
   });
 
   it('renders title', () => {

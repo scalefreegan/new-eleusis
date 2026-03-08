@@ -130,7 +130,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
     >
       <GlassPanel
         style={{
-          maxWidth: '600px',
+          maxWidth: 'min(600px, 90vw)',
           padding: '3rem',
           margin: 'auto',
         }}
@@ -176,7 +176,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
               onClick={() => applyPreset('solo')}
               style={{
                 flex: 1,
-                minWidth: '120px',
+                minWidth: '140px',
                 padding: '0.75rem',
                 background: 'rgba(255, 255, 255, 0.1)',
                 border: '2px solid rgba(255, 255, 255, 0.2)',
@@ -194,7 +194,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
               onClick={() => applyPreset('duo')}
               style={{
                 flex: 1,
-                minWidth: '120px',
+                minWidth: '140px',
                 padding: '0.75rem',
                 background: 'rgba(255, 255, 255, 0.1)',
                 border: '2px solid rgba(255, 255, 255, 0.2)',
@@ -212,7 +212,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
               onClick={() => applyPreset('party')}
               style={{
                 flex: 1,
-                minWidth: '120px',
+                minWidth: '140px',
                 padding: '0.75rem',
                 background: 'rgba(255, 255, 255, 0.1)',
                 border: '2px solid rgba(255, 255, 255, 0.2)',
@@ -252,6 +252,19 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
               border: nextGodIndex === 0 ? '2px solid var(--accent-gold)' : '1px solid var(--accent-gold)',
             }}
           >
+            {nextGodIndex === 0 && (
+              <div
+                style={{
+                  fontSize: '1.0rem',
+                  color: 'var(--accent-gold)',
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  marginBottom: '0.5rem',
+                }}
+              >
+                👑 {isTrueProphetGod ? 'True Prophet!' : 'Next God'}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <input
                 type="text"
@@ -269,18 +282,6 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                 }}
                 placeholder="God Name"
               />
-              {nextGodIndex === 0 && (
-                <div
-                  style={{
-                    fontSize: '1.0rem',
-                    color: 'var(--accent-gold)',
-                    whiteSpace: 'nowrap',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  👑 {isTrueProphetGod ? 'True Prophet!' : 'Next God'}
-                </div>
-              )}
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button
                   onClick={() => updateDealer({ type: 'human' })}
@@ -422,6 +423,19 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                   border: isNextGod ? '2px solid var(--accent-gold)' : '1px solid rgba(255, 255, 255, 0.1)',
                 }}
               >
+                {isNextGod && (
+                  <div
+                    style={{
+                      fontSize: '1.0rem',
+                      color: 'var(--accent-gold)',
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                      marginBottom: '0.5rem',
+                    }}
+                  >
+                    👑 {isTrueProphetGod ? 'True Prophet!' : 'Next God'}
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                   <input
                     type="text"
@@ -439,18 +453,6 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                     }}
                     placeholder="Player Name"
                   />
-                  {isNextGod && (
-                    <div
-                      style={{
-                        fontSize: '1.0rem',
-                        color: 'var(--accent-gold)',
-                        whiteSpace: 'nowrap',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      👑 {isTrueProphetGod ? 'True Prophet!' : 'Next God'}
-                    </div>
-                  )}
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button
                       onClick={() => updatePlayer(index, { type: 'human' })}
@@ -576,7 +578,8 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
           onClick={handleStart}
           style={{
             width: '100%',
-            padding: '1.25rem',
+            padding: '1.5rem',
+            minHeight: '60px',
             background: 'var(--accent-purple)',
             border: '2px solid var(--accent-gold)',
             borderRadius: '8px',

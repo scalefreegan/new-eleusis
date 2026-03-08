@@ -126,14 +126,14 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
               <div
                 style={{
                   display: 'flex',
-                  justifyContent: 'space-between',
+                  flexDirection: 'column',
                   fontSize: '1.1rem',
                   color: 'var(--text-dim)',
-                  gap: '0.5rem',
+                  gap: '0.25rem',
                 }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ color: 'var(--text-dim)' }}>Scr:</span>{' '}
+                  <span style={{ color: 'var(--text-dim)' }}>Score:</span>{' '}
                   <span
                     style={{
                       color: isExpelled
@@ -145,7 +145,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
                   </span>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ color: 'var(--text-dim)' }}>Cds:</span>{' '}
+                  <span style={{ color: 'var(--text-dim)' }}>Cards:</span>{' '}
                   <span
                     style={{
                       color: isExpelled
