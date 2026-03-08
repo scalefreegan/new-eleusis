@@ -106,7 +106,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
             <h1
               style={{
-                fontSize: '1.5rem',
+                fontSize: '3.0rem',
                 color: 'var(--accent-gold)',
                 textShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
               }}
@@ -120,7 +120,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 border: '2px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '8px',
                 color: 'var(--text-light)',
-                fontSize: '1rem',
+                fontSize: '2.0rem',
                 cursor: 'pointer',
                 padding: '0.5rem 1rem',
                 fontFamily: 'Press Start 2P, cursive',
@@ -130,10 +130,10 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </button>
           </div>
 
-          <div style={{ fontSize: '0.65rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div style={{ fontSize: '1.3rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             {/* Sound Settings */}
             <section>
-              <h2 style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              <h2 style={{ color: 'var(--accent-purple)', fontSize: '1.7rem', marginBottom: '1rem' }}>
                 🔊 SOUND
               </h2>
 
@@ -172,7 +172,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
             {/* Animation Speed */}
             <section>
-              <h2 style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              <h2 style={{ color: 'var(--accent-purple)', fontSize: '1.7rem', marginBottom: '1rem' }}>
                 ⚡ ANIMATION SPEED
               </h2>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -191,7 +191,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                         : '2px solid rgba(255, 255, 255, 0.2)',
                       borderRadius: '8px',
                       color: 'var(--text-light)',
-                      fontSize: '0.6rem',
+                      fontSize: '1.2rem',
                       cursor: 'pointer',
                       fontFamily: 'Press Start 2P, cursive',
                       transition: 'all 0.2s',
@@ -206,7 +206,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
             {/* Hand Settings */}
             <section>
-              <h2 style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              <h2 style={{ color: 'var(--accent-purple)', fontSize: '1.7rem', marginBottom: '1rem' }}>
                 🎴 HAND
               </h2>
               <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer' }}>
@@ -231,7 +231,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               border: '2px solid var(--accent-gold)',
               borderRadius: '8px',
               color: 'var(--text-light)',
-              fontSize: '0.65rem',
+              fontSize: '1.3rem',
               cursor: 'pointer',
               fontFamily: 'Press Start 2P, cursive',
               transition: 'all 0.2s',

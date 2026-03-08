@@ -55,7 +55,7 @@ export function GameOverScreen({ state, onPlayAgain, onMainMenu }: GameOverScree
         <GlassPanel style={{ maxWidth: '600px', padding: '3rem', textAlign: 'center' }}>
           <h1
             style={{
-              fontSize: '2rem',
+              fontSize: '3.0rem',
               color: 'var(--accent-gold)',
               textShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
               marginBottom: '1rem',
@@ -67,7 +67,7 @@ export function GameOverScreen({ state, onPlayAgain, onMainMenu }: GameOverScree
           {isTrueProphet && (
             <div
               style={{
-                fontSize: '0.75rem',
+                fontSize: '1.5rem',
                 color: 'var(--accent-purple)',
                 marginBottom: '1.5rem',
                 padding: '0.5rem',
@@ -92,7 +92,7 @@ export function GameOverScreen({ state, onPlayAgain, onMainMenu }: GameOverScree
             >
               <div
                 style={{
-                  fontSize: '1.5rem',
+                  fontSize: '3.0rem',
                   marginBottom: '0.5rem',
                 }}
               >
@@ -100,7 +100,7 @@ export function GameOverScreen({ state, onPlayAgain, onMainMenu }: GameOverScree
               </div>
               <div
                 style={{
-                  fontSize: '1rem',
+                  fontSize: '2.0rem',
                   color: 'var(--accent-gold)',
                   marginBottom: '0.5rem',
                 }}
@@ -109,7 +109,7 @@ export function GameOverScreen({ state, onPlayAgain, onMainMenu }: GameOverScree
               </div>
               <div
                 style={{
-                  fontSize: '0.75rem',
+                  fontSize: '1.5rem',
                   color: 'var(--text-light)',
                 }}
               >
@@ -127,7 +127,7 @@ export function GameOverScreen({ state, onPlayAgain, onMainMenu }: GameOverScree
           >
             <h2
               style={{
-                fontSize: '0.75rem',
+                fontSize: '1.5rem',
                 color: 'var(--accent-blue)',
                 marginBottom: '1rem',
                 textAlign: 'center',
@@ -150,7 +150,7 @@ export function GameOverScreen({ state, onPlayAgain, onMainMenu }: GameOverScree
                     ? '1px solid rgba(255, 215, 0, 0.3)'
                     : '1px solid rgba(255, 255, 255, 0.1)',
                   borderRadius: '8px',
-                  fontSize: '0.65rem',
+                  fontSize: '1.3rem',
                 }}
               >
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -191,7 +191,7 @@ export function GameOverScreen({ state, onPlayAgain, onMainMenu }: GameOverScree
                 border: '2px solid var(--accent-gold)',
                 borderRadius: '8px',
                 color: 'var(--text-light)',
-                fontSize: '0.65rem',
+                fontSize: '1.3rem',
                 cursor: 'pointer',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
@@ -215,7 +215,7 @@ export function GameOverScreen({ state, onPlayAgain, onMainMenu }: GameOverScree
                 border: '2px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '8px',
                 color: 'var(--text-dim)',
-                fontSize: '0.65rem',
+                fontSize: '1.3rem',
                 cursor: 'pointer',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',

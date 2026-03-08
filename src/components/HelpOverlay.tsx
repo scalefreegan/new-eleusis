@@ -41,7 +41,7 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
             <h1
               style={{
-                fontSize: '1.5rem',
+                fontSize: '3.0rem',
                 color: 'var(--accent-gold)',
                 textShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
               }}
@@ -55,7 +55,7 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
                 border: '2px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '8px',
                 color: 'var(--text-light)',
-                fontSize: '1rem',
+                fontSize: '2.0rem',
                 cursor: 'pointer',
                 padding: '0.5rem 1rem',
                 fontFamily: 'Press Start 2P, cursive',
@@ -65,9 +65,9 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
             </button>
           </div>
 
-          <div style={{ fontSize: '0.65rem', lineHeight: '1.8', color: 'var(--text-light)' }}>
+          <div style={{ fontSize: '1.3rem', lineHeight: '1.8', color: 'var(--text-light)' }}>
             <section style={{ marginBottom: '2rem' }}>
-              <h2 style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              <h2 style={{ color: 'var(--accent-purple)', fontSize: '1.7rem', marginBottom: '1rem' }}>
                 🎯 OBJECTIVE
               </h2>
               <p style={{ marginBottom: '0.75rem' }}>
@@ -77,7 +77,7 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
             </section>
 
             <section style={{ marginBottom: '2rem' }}>
-              <h2 style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              <h2 style={{ color: 'var(--accent-purple)', fontSize: '1.7rem', marginBottom: '1rem' }}>
                 🎴 BASIC PLAY
               </h2>
               <ul style={{ paddingLeft: '1.5rem', marginBottom: '0.75rem' }}>
@@ -100,7 +100,7 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
             </section>
 
             <section style={{ marginBottom: '2rem' }}>
-              <h2 style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              <h2 style={{ color: 'var(--accent-purple)', fontSize: '1.7rem', marginBottom: '1rem' }}>
                 🚫 NO PLAY
               </h2>
               <p style={{ marginBottom: '0.75rem' }}>
@@ -120,7 +120,7 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
             </section>
 
             <section style={{ marginBottom: '2rem' }}>
-              <h2 style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              <h2 style={{ color: 'var(--accent-purple)', fontSize: '1.7rem', marginBottom: '1rem' }}>
                 👑 THE PROPHET
               </h2>
               <p style={{ marginBottom: '0.75rem' }}>
@@ -143,7 +143,7 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
             </section>
 
             <section style={{ marginBottom: '2rem' }}>
-              <h2 style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              <h2 style={{ color: 'var(--accent-purple)', fontSize: '1.7rem', marginBottom: '1rem' }}>
                 📊 SCORING
               </h2>
               <p style={{ marginBottom: '0.75rem', fontStyle: 'italic' }}>
@@ -163,7 +163,7 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
             </section>
 
             <section style={{ marginBottom: '2rem' }}>
-              <h2 style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              <h2 style={{ color: 'var(--accent-purple)', fontSize: '1.7rem', marginBottom: '1rem' }}>
                 ⚡ SUDDEN DEATH
               </h2>
               <ul style={{ paddingLeft: '1.5rem', marginBottom: '0.75rem' }}>
@@ -183,7 +183,7 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
             </section>
 
             <section>
-              <h2 style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              <h2 style={{ color: 'var(--accent-purple)', fontSize: '1.7rem', marginBottom: '1rem' }}>
                 🏆 GAME END
               </h2>
               <p style={{ marginBottom: '0.75rem' }}>
@@ -216,7 +216,7 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
               border: '2px solid var(--accent-gold)',
               borderRadius: '8px',
               color: 'var(--text-light)',
-              fontSize: '0.65rem',
+              fontSize: '1.3rem',
               cursor: 'pointer',
               fontFamily: 'Press Start 2P, cursive',
               transition: 'all 0.2s',

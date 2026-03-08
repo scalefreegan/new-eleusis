@@ -54,7 +54,7 @@ export function NoPlayDisputePanel({
       >
         <h2
           style={{
-            fontSize: '1rem',
+            fontSize: '2.0rem',
             color: 'var(--accent-gold)',
             marginBottom: '1rem',
             textAlign: 'center',
@@ -66,7 +66,7 @@ export function NoPlayDisputePanel({
 
         <p
           style={{
-            fontSize: '0.7rem',
+            fontSize: '1.4rem',
             color: 'var(--text-light)',
             textAlign: 'center',
             marginBottom: '2rem',
@@ -89,7 +89,7 @@ export function NoPlayDisputePanel({
           >
             <p
               style={{
-                fontSize: '0.65rem',
+                fontSize: '1.3rem',
                 color: 'var(--accent-gold)',
                 marginBottom: '0.5rem',
               }}
@@ -98,7 +98,7 @@ export function NoPlayDisputePanel({
             </p>
             <p
               style={{
-                fontSize: '0.55rem',
+                fontSize: '1.1rem',
                 color: 'var(--text-dim)',
               }}
             >
@@ -121,7 +121,7 @@ export function NoPlayDisputePanel({
                 border: '2px solid rgba(0, 255, 0, 0.5)',
                 borderRadius: '8px',
                 color: 'var(--text-light)',
-                fontSize: '0.65rem',
+                fontSize: '1.3rem',
                 cursor: 'pointer',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
@@ -146,7 +146,7 @@ export function NoPlayDisputePanel({
                 border: '2px solid rgba(255, 0, 0, 0.5)',
                 borderRadius: '8px',
                 color: 'var(--text-light)',
-                fontSize: '0.65rem',
+                fontSize: '1.3rem',
                 cursor: 'pointer',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
@@ -168,7 +168,7 @@ export function NoPlayDisputePanel({
         {!isAIGod && (
           <p
             style={{
-              fontSize: '0.5rem',
+              fontSize: '1.0rem',
               color: 'var(--text-dim)',
               textAlign: 'center',
               marginTop: '1.5rem',

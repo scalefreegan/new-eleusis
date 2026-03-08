@@ -18,7 +18,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
     <div style={{ width: '100%' }}>
       <h2
         style={{
-          fontSize: '0.8rem',
+          fontSize: '1.6rem',
           marginBottom: '0.75rem',
           color: 'var(--accent-gold)',
           textAlign: 'center',
@@ -67,7 +67,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flex: 1, minWidth: 0 }}>
                   <span
                     style={{
-                      fontSize: '0.65rem',
+                      fontSize: '1.3rem',
                       fontWeight: isCurrent ? 'bold' : 'normal',
                       color: isExpelled
                         ? 'var(--text-dim)'
@@ -85,7 +85,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
                   {player.type === 'ai' && (
                     <span
                       style={{
-                        fontSize: '0.45rem',
+                        fontSize: '0.9rem',
                         color: 'var(--text-dim)',
                         padding: '0.1rem 0.2rem',
                         background: 'rgba(255, 255, 255, 0.1)',
@@ -101,7 +101,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
                   {player.isProphet && (
                     <span
                       style={{
-                        fontSize: '0.75rem',
+                        fontSize: '1.5rem',
                         filter: isExpelled ? 'grayscale(100%)' : 'none',
                       }}
                       title="Prophet"
@@ -112,7 +112,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
                   {isExpelled && (
                     <span
                       style={{
-                        fontSize: '0.75rem',
+                        fontSize: '1.5rem',
                       }}
                       title="Expelled"
                     >
@@ -127,7 +127,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
-                  fontSize: '0.55rem',
+                  fontSize: '1.1rem',
                   color: 'var(--text-dim)',
                   gap: '0.5rem',
                 }}

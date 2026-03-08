@@ -61,7 +61,7 @@ export function ProphetPredictionPanel({
         <div style={{ textAlign: 'center' }}>
           <div
             style={{
-              fontSize: '0.6rem',
+              fontSize: '1.2rem',
               color: 'var(--accent-gold)',
               marginBottom: '0.5rem',
               fontWeight: 'bold',
@@ -71,7 +71,7 @@ export function ProphetPredictionPanel({
           </div>
           <div
             style={{
-              fontSize: '0.65rem',
+              fontSize: '1.3rem',
               color: 'var(--text-light)',
               marginBottom: '1rem',
             }}
@@ -92,7 +92,7 @@ export function ProphetPredictionPanel({
 
           <div
             style={{
-              fontSize: '0.7rem',
+              fontSize: '1.4rem',
               color: 'var(--text-light)',
               marginBottom: '1.5rem',
               fontWeight: 'bold',
@@ -109,7 +109,7 @@ export function ProphetPredictionPanel({
                 border: '2px solid rgba(0, 255, 0, 0.5)',
                 borderRadius: '8px',
                 color: '#00ff00',
-                fontSize: '0.75rem',
+                fontSize: '1.5rem',
                 cursor: 'pointer',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
@@ -134,7 +134,7 @@ export function ProphetPredictionPanel({
                 border: '2px solid rgba(255, 0, 0, 0.5)',
                 borderRadius: '8px',
                 color: '#ff0000',
-                fontSize: '0.75rem',
+                fontSize: '1.5rem',
                 cursor: 'pointer',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
@@ -155,7 +155,7 @@ export function ProphetPredictionPanel({
           <div
             style={{
               marginTop: '1rem',
-              fontSize: '0.5rem',
+              fontSize: '1.0rem',
               color: 'var(--text-dim)',
             }}
           >
