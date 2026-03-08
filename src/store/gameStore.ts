@@ -16,6 +16,13 @@ import {
 import { sounds } from '../audio/sounds';
 import { validateFunctionBody, createSandboxedFunction } from '../services/ruleCompiler';
 
+export interface StartNewGameOptions {
+  configs: PlayerConfig[];
+  ruleText?: string;
+  ruleFunction?: (lastCard: import('../engine/types').Card, newCard: import('../engine/types').Card) => boolean;
+  functionBody?: string;
+}
+
 interface GameStore {
   state: GameState;
   selectedCards: Set<string>;
@@ -34,7 +41,7 @@ interface GameStore {
   clearSelection: () => void;
 
   // Game setup
-  startNewGame: (configs: PlayerConfig[], ruleText?: string, ruleFunction?: (lastCard: import('../engine/types').Card, newCard: import('../engine/types').Card) => boolean, functionBody?: string) => void;
+  startNewGame: (options: StartNewGameOptions) => void;
   resetGame: () => void;
   loadSavedGame: () => void;
   clearSavedGame: () => void;
@@ -350,7 +357,7 @@ export const useGameStore = create<GameStore>()(
     set({ selectedCards: new Set() });
   },
 
-  startNewGame: (configs: PlayerConfig[], ruleText?: string, ruleFunction?: (lastCard: import('../engine/types').Card, newCard: import('../engine/types').Card) => boolean, functionBody?: string) => {
+  startNewGame: ({ configs, ruleText, ruleFunction, functionBody }: StartNewGameOptions) => {
     const { lastGodIndex, trueProphetIndex } = get();
 
     // Determine next God index

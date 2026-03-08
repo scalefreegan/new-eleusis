@@ -65,14 +65,14 @@ function App() {
       setPendingRuleText(ruleText.trim());
       setAppState('compilingRule');
     } else {
-      startNewGame(configs, ruleText);
+      startNewGame({ configs, ruleText });
       setAppState('game');
     }
   };
 
   const handleCompiled = (fn: (lastCard: Card, newCard: Card) => boolean, functionBody: string) => {
     if (pendingConfigs) {
-      startNewGame(pendingConfigs, pendingRuleText, fn, functionBody);
+      startNewGame({ configs: pendingConfigs, ruleText: pendingRuleText, ruleFunction: fn, functionBody });
     }
     setPendingConfigs(null);
     setPendingRuleText('');
@@ -81,7 +81,7 @@ function App() {
 
   const handleSkipCompilation = () => {
     if (pendingConfigs) {
-      startNewGame(pendingConfigs, pendingRuleText);
+      startNewGame({ configs: pendingConfigs, ruleText: pendingRuleText });
     }
     setPendingConfigs(null);
     setPendingRuleText('');

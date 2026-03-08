@@ -30,11 +30,11 @@ describe('resolveNoPlayAsHumanGod', () => {
 
   it('shows error when godRuleFunction is missing', () => {
     const s = useGameStore.getState();
-    s.startNewGame([
+    s.startNewGame({ configs: [
       { name: 'God', type: 'human', isGod: true },
       { name: 'Player1', type: 'human', isGod: false },
       { name: 'Player2', type: 'human', isGod: false },
-    ]);
+    ] });
 
     const players = useGameStore.getState().state.players;
     const player1 = players.find(p => p.name === 'Player1')!;
@@ -61,11 +61,11 @@ describe('resolveNoPlayAsHumanGod', () => {
 
   it('shows error when no valid card found in player hand', () => {
     const s = useGameStore.getState();
-    s.startNewGame([
+    s.startNewGame({ configs: [
       { name: 'God', type: 'human', isGod: true },
       { name: 'Player1', type: 'human', isGod: false },
       { name: 'Player2', type: 'human', isGod: false },
-    ]);
+    ] });
 
     const players = useGameStore.getState().state.players;
     const player1 = players.find(p => p.name === 'Player1')!;
@@ -92,11 +92,11 @@ describe('resolveNoPlayAsHumanGod', () => {
 
   it('does not show error for valid no-play resolution', () => {
     const s = useGameStore.getState();
-    s.startNewGame([
+    s.startNewGame({ configs: [
       { name: 'God', type: 'human', isGod: true },
       { name: 'Player1', type: 'human', isGod: false },
       { name: 'Player2', type: 'human', isGod: false },
-    ]);
+    ] });
 
     const players = useGameStore.getState().state.players;
     const player1 = players.find(p => p.name === 'Player1')!;
