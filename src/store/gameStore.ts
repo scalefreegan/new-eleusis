@@ -63,6 +63,26 @@ interface GameStore {
 
 const SAVE_KEY = 'eleusis-game-save';
 
+// Module-level timeout tracking for dispatch effect timers.
+// Cleared on resetGame and when pendingPlay is cleared (manual judgment).
+const pendingTimeouts = new Set<ReturnType<typeof setTimeout>>();
+
+function trackTimeout(fn: () => void, delay: number): ReturnType<typeof setTimeout> {
+  const id = setTimeout(() => {
+    pendingTimeouts.delete(id);
+    fn();
+  }, delay);
+  pendingTimeouts.add(id);
+  return id;
+}
+
+function clearAllPendingTimeouts() {
+  for (const id of pendingTimeouts) {
+    clearTimeout(id);
+  }
+  pendingTimeouts.clear();
+}
+
 export const useGameStore = create<GameStore>()(
   persist(
     (set, get) => ({
@@ -84,14 +104,14 @@ export const useGameStore = create<GameStore>()(
 
     // After END_TURN, advance to next actionable player
     if (action.type === 'END_TURN') {
-      setTimeout(() => {
+      trackTimeout(() => {
         get().advanceToNextActionablePlayer();
       }, 300);
     }
 
     // After DECLARE_PROPHET, end turn and advance to next player
     if (action.type === 'DECLARE_PROPHET') {
-      setTimeout(() => {
+      trackTimeout(() => {
         get().dispatch({ type: 'END_TURN' });
       }, 400);
     }
@@ -122,20 +142,26 @@ export const useGameStore = create<GameStore>()(
 
       // Auto-judge if there's a judge function, no Prophet awaiting, and player is human
       if (judgeCard && player && player.type === 'human' && newState.mainLine.length > 0 && !shouldWaitForProphet) {
-        const cardIds = newState.pendingPlay.cards.map(c => c.id);
+        // Capture card IDs at dispatch time to avoid stale closures
+        const capturedCardIds = newState.pendingPlay.cards.map(c => c.id);
 
         // Judge each card sequentially
-        cardIds.forEach((cardId, i) => {
-          setTimeout(() => {
+        capturedCardIds.forEach((cardId, i) => {
+          trackTimeout(() => {
             const currentState = get().state;
             const card = currentState.pendingPlay?.cards.find(c => c.id === cardId);
 
-            if (card && currentState.mainLine.length > 0) {
+            if (!card) {
+              console.warn('[gameStore] PLAY_CARD auto-judgment: card', cardId, 'not found in pendingPlay (stale or already judged)');
+              return;
+            }
+
+            if (currentState.mainLine.length > 0) {
               const lastCard = currentState.mainLine[currentState.mainLine.length - 1];
               const isCorrect = judgeCard(lastCard, card);
 
               // Play judgment sound
-              setTimeout(() => {
+              trackTimeout(() => {
                 if (isCorrect) {
                   sounds.playCorrect();
                 } else {
@@ -161,71 +187,76 @@ export const useGameStore = create<GameStore>()(
         ? (last: import('../engine/types').Card, card: import('../engine/types').Card) => aiGod.judgeCard(last, card)
         : newState.godRuleFunction ?? null;
       if (judgeCardFn && newState.mainLine.length > 0) {
-        const card = newState.pendingPlay.cards.find(c => c.id === action.cardId);
+        // Capture card ID at dispatch time
+        const capturedCardId = action.cardId;
+        const card = newState.pendingPlay.cards.find(c => c.id === capturedCardId);
         if (card) {
-          setTimeout(() => {
+          trackTimeout(() => {
             const currentState = get().state;
             if (currentState.mainLine.length > 0 && currentState.pendingPlay) {
-              const pendingCard = currentState.pendingPlay.cards.find(c => c.id === action.cardId);
-              if (pendingCard) {
-                const lastCard = currentState.mainLine[currentState.mainLine.length - 1];
-                let godJudgment: boolean;
-                try {
-                  godJudgment = judgeCardFn(lastCard, pendingCard);
-                } catch (err) {
-                  console.error('[gameStore] judgeCardFn threw in PROPHET_PREDICT, falling back to manual judgment:', err);
-                  return;
-                }
-                const prophetPrediction = action.prediction;
-                const prophetPlayer = currentState.players.find(p => p.isProphet && !p.isGod);
+              const pendingCard = currentState.pendingPlay.cards.find(c => c.id === capturedCardId);
+              if (!pendingCard) {
+                console.warn('[gameStore] PROPHET_PREDICT auto-judgment: card', capturedCardId, 'not found in pendingPlay (stale or already judged)');
+                return;
+              }
 
-                // Check if Prophet's prediction matches dealer's judgment
-                const approved = prophetPrediction === godJudgment;
+              const lastCard = currentState.mainLine[currentState.mainLine.length - 1];
+              let godJudgment: boolean;
+              try {
+                godJudgment = judgeCardFn(lastCard, pendingCard);
+              } catch (err) {
+                console.error('[gameStore] judgeCardFn threw in PROPHET_PREDICT, falling back to manual judgment:', err);
+                return;
+              }
+              const prophetPrediction = action.prediction;
+              const prophetPlayer = currentState.players.find(p => p.isProphet && !p.isGod);
 
-                if (approved) {
-                  // Prophet was correct - proceed normally
-                  get().dispatch({
-                    type: 'PROPHET_VERIFY',
-                    prediction: prophetPrediction,
-                    godJudgment,
-                    cardId: action.cardId,
-                  });
+              // Check if Prophet's prediction matches dealer's judgment
+              const approved = prophetPrediction === godJudgment;
 
-                  setTimeout(() => {
-                    if (godJudgment) {
-                      sounds.playCorrect();
-                    } else {
-                      sounds.playWrong();
-                    }
-                  }, 150);
+              if (approved) {
+                // Prophet was correct - proceed normally
+                get().dispatch({
+                  type: 'PROPHET_VERIFY',
+                  prediction: prophetPrediction,
+                  godJudgment,
+                  cardId: capturedCardId,
+                });
 
-                  get().dispatch({
-                    type: 'JUDGE_CARD',
-                    cardId: action.cardId,
-                    correct: godJudgment,
-                  });
-                } else {
-                  // Prophet was wrong - overthrow them
-                  if (prophetPlayer) {
-                    get().dispatch({
-                      type: 'OVERTHROW_PROPHET',
-                      prophetId: prophetPlayer.id,
-                    });
-                  }
-
-                  // Still judge the card with the actual result (no penalty to player)
-                  setTimeout(() => {
-                    // Play a distinctive overthrow sound (using wrong sound for now)
+                trackTimeout(() => {
+                  if (godJudgment) {
+                    sounds.playCorrect();
+                  } else {
                     sounds.playWrong();
-                  }, 150);
+                  }
+                }, 150);
 
+                get().dispatch({
+                  type: 'JUDGE_CARD',
+                  cardId: capturedCardId,
+                  correct: godJudgment,
+                });
+              } else {
+                // Prophet was wrong - overthrow them
+                if (prophetPlayer) {
                   get().dispatch({
-                    type: 'JUDGE_CARD',
-                    cardId: action.cardId,
-                    correct: godJudgment,
-                    skipPenalty: true,
+                    type: 'OVERTHROW_PROPHET',
+                    prophetId: prophetPlayer.id,
                   });
                 }
+
+                // Still judge the card with the actual result (no penalty to player)
+                trackTimeout(() => {
+                  // Play a distinctive overthrow sound (using wrong sound for now)
+                  sounds.playWrong();
+                }, 150);
+
+                get().dispatch({
+                  type: 'JUDGE_CARD',
+                  cardId: capturedCardId,
+                  correct: godJudgment,
+                  skipPenalty: true,
+                });
               }
             }
           }, 600);
@@ -252,7 +283,7 @@ export const useGameStore = create<GameStore>()(
           }
           if (correctCard) {
             // Re-dispatch with correct card ID
-            setTimeout(() => {
+            trackTimeout(() => {
               get().dispatch({
                 type: 'RESOLVE_NO_PLAY',
                 valid: false,
@@ -283,7 +314,7 @@ export const useGameStore = create<GameStore>()(
             return;
           }
 
-          setTimeout(() => {
+          trackTimeout(() => {
             if (hasValidPlay) {
               // Invalid no-play - find the correct card
               let correctCard: import('../engine/types').Card | undefined;
@@ -316,7 +347,7 @@ export const useGameStore = create<GameStore>()(
 
     // After RESOLVE_NO_PLAY, dispatch END_TURN to advance play
     if (action.type === 'RESOLVE_NO_PLAY' && previousState.phase === 'no_play_dispute' && newState.phase === 'playing') {
-      setTimeout(() => {
+      trackTimeout(() => {
         get().dispatch({ type: 'END_TURN' });
       }, 400);
     }
@@ -333,7 +364,7 @@ export const useGameStore = create<GameStore>()(
         const wasInProphetFlow = prophetPlayer && previousState.pendingPlay.playerId !== prophetPlayer.id;
 
         if (currentPlayer?.type === 'human' || wasInProphetFlow) {
-          setTimeout(() => {
+          trackTimeout(() => {
             get().dispatch({ type: 'END_TURN' });
           }, 400);
         }
@@ -358,6 +389,7 @@ export const useGameStore = create<GameStore>()(
   },
 
   startNewGame: ({ configs, ruleText, ruleFunction, functionBody }: StartNewGameOptions) => {
+    clearAllPendingTimeouts();
     const { lastGodIndex, trueProphetIndex } = get();
 
     // Determine next God index
@@ -449,7 +481,7 @@ export const useGameStore = create<GameStore>()(
     });
 
     // Advance to next actionable player
-    setTimeout(() => {
+    trackTimeout(() => {
       get().advanceToNextActionablePlayer();
     }, 500);
   },
@@ -475,7 +507,7 @@ export const useGameStore = create<GameStore>()(
     const prophetPlayer = state.players.find(p => p.isProphet && p.type === 'human' && !p.isGod);
 
     // Dispatch PLAY_CARD through reducer
-    setTimeout(() => {
+    trackTimeout(() => {
       sounds.playCardPlace();
       dispatch({
         type: 'PLAY_CARD',
@@ -490,18 +522,26 @@ export const useGameStore = create<GameStore>()(
         return;
       }
 
+      // Capture card IDs at dispatch time to avoid stale closures
+      const capturedCardIds = [...cardIds];
+
       // No Prophet - judge each card sequentially (existing behavior)
-      cardIds.forEach((cardId, i) => {
-        setTimeout(() => {
+      capturedCardIds.forEach((cardId, i) => {
+        trackTimeout(() => {
           const currentState = get().state;
 
           // Find the card in pendingPlay
           const card = currentState.pendingPlay?.cards.find(c => c.id === cardId);
 
+          if (!card) {
+            console.warn('[gameStore] executeAITurn auto-judgment: card', cardId, 'not found in pendingPlay (stale or already judged)');
+            return;
+          }
+
           const judgeCardForAI = aiGod
             ? (l: import('../engine/types').Card, c: import('../engine/types').Card) => aiGod.judgeCard(l, c)
             : currentState.godRuleFunction ?? null;
-          if (card && judgeCardForAI && currentState.mainLine.length > 0) {
+          if (judgeCardForAI && currentState.mainLine.length > 0) {
             const lastCard = currentState.mainLine[currentState.mainLine.length - 1];
             let isCorrect: boolean;
             try {
@@ -512,7 +552,7 @@ export const useGameStore = create<GameStore>()(
             }
 
             // Play judgment sound
-            setTimeout(() => {
+            trackTimeout(() => {
               if (isCorrect) {
                 sounds.playCorrect();
               } else {
@@ -531,7 +571,7 @@ export const useGameStore = create<GameStore>()(
       });
 
       // End turn after all cards are judged
-      setTimeout(() => {
+      trackTimeout(() => {
         dispatch({ type: 'END_TURN' });
       }, cardIds.length * 600 + 400);
     }, 300);
@@ -547,7 +587,7 @@ export const useGameStore = create<GameStore>()(
 
     // If current player is AI, execute their turn
     if (currentPlayer.type === 'ai' && !currentPlayer.isGod) {
-      setTimeout(() => {
+      trackTimeout(() => {
         get().executeAITurn();
       }, 800);
     }
@@ -567,7 +607,7 @@ export const useGameStore = create<GameStore>()(
   judgeCardAsHumanDealer: (cardId: string, correct: boolean) => {
     const { dispatch } = get();
     sounds.playCardPlace();
-    setTimeout(() => {
+    trackTimeout(() => {
       if (correct) {
         sounds.playCorrect();
       } else {
@@ -661,6 +701,7 @@ export const useGameStore = create<GameStore>()(
   },
 
   resetGame: () => {
+    clearAllPendingTimeouts();
     set({
       state: createInitialState(),
       selectedCards: new Set(),
