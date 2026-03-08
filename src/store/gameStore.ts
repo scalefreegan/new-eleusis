@@ -360,8 +360,9 @@ export const useGameStore = create<GameStore>()(
         // Dispatch END_TURN for:
         // 1. Human players (always need auto END_TURN)
         // 2. AI players when Prophet flow is active (executeAITurn doesn't schedule END_TURN in that case)
-        const prophetPlayer = newState.players.find(p => p.isProphet && p.type === 'human' && !p.isGod);
-        const wasInProphetFlow = prophetPlayer && previousState.pendingPlay.playerId !== prophetPlayer.id;
+        // Detect prophet flow by checking if predictions were made on the pending play.
+        // We can't rely on isProphet because OVERTHROW_PROPHET clears it before JUDGE_CARD runs.
+        const wasInProphetFlow = Object.keys(previousState.pendingPlay.predictions).length > 0;
 
         if (currentPlayer?.type === 'human' || wasInProphetFlow) {
           trackTimeout(() => {
