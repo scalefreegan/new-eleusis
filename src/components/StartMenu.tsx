@@ -240,8 +240,8 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
             }}
           >
             GOD {isTrueProphetGod
-              ? <span style={{ fontSize: '1rem', color: 'var(--accent-gold)' }}>(True Prophet!)</span>
-              : lastGodIndex >= 0 && <span style={{ fontSize: '1rem', color: 'var(--text-dim)' }}>(rotates each game)</span>
+              ? <span style={{ fontSize: '0.9rem', color: 'var(--accent-gold)' }}>(True Prophet!)</span>
+              : lastGodIndex >= 0 && <span style={{ fontSize: '0.9rem', color: 'var(--text-dim)' }}>(rotates each game)</span>
             }
           </label>
           <div
@@ -334,12 +334,12 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                   </label>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     {!compilerLoading && compilerAvailable && dealerRule.trim().length > 0 && (
-                      <div style={{ fontSize: '1rem', color: '#00cc88' }}>
+                      <div style={{ fontSize: '0.7rem', color: '#00cc88' }}>
                         ⚡ Will compile on start
                       </div>
                     )}
                     {!compilerLoading && !compilerAvailable && (
-                      <div style={{ fontSize: '1rem', color: 'var(--text-dim)' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
                         Manual judgment only
                       </div>
                     )}
@@ -380,7 +380,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                   }}
                 />
                 {compilerAvailable && dealerRule.trim().length > 0 && (
-                  <div style={{ fontSize: '1rem', color: 'var(--text-dim)', marginTop: '0.3rem', lineHeight: 1.5 }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.3rem', lineHeight: 1.5 }}>
                     Claude will compile this into a deterministic function when you start.
                     You'll review examples before the game begins.
                   </div>

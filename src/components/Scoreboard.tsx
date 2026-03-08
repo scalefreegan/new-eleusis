@@ -85,7 +85,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ players, currentPlayerIn
                   {player.type === 'ai' && (
                     <span
                       style={{
-                        fontSize: '1rem',
+                        fontSize: '0.9rem',
                         color: 'var(--text-dim)',
                         padding: '0.1rem 0.2rem',
                         background: 'rgba(255, 255, 255, 0.1)',

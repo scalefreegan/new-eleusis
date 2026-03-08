@@ -22,9 +22,6 @@
   --glass-bg: rgba(30, 20, 50, 0.7);
   --glass-border: rgba(255, 255, 255, 0.1);
 
-  /* Font size floor — no text smaller than this */
-  --font-size-min: 1rem;
-
   /* Suit colors */
   --suit-red: #dc143c;
   --suit-black: #000000;
