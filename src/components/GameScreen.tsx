@@ -178,7 +178,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
           <div>
             <h1
               style={{
-                fontSize: '1.5rem',
+                fontSize: '3.0rem',
                 color: 'var(--accent-gold)',
                 textShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
                 marginBottom: '0.25rem',
@@ -188,7 +188,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
             </h1>
             <p
               style={{
-                fontSize: '0.65rem',
+                fontSize: '1.3rem',
                 color: 'var(--text-dim)',
               }}
             >
@@ -201,7 +201,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
             {prophetPlayer && (
               <p
                 style={{
-                  fontSize: '0.5rem',
+                  fontSize: '1.0rem',
                   color: 'var(--accent-gold)',
                   marginTop: '0.25rem',
                 }}
@@ -221,7 +221,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
                 border: `2px solid ${showCheat ? 'var(--accent-gold)' : 'rgba(255, 255, 255, 0.2)'}`,
                 borderRadius: '8px',
                 color: showCheat ? 'var(--accent-gold)' : 'var(--text-light)',
-                fontSize: '0.6rem',
+                fontSize: '1.2rem',
                 cursor: 'pointer',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
@@ -244,7 +244,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
                 border: '2px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '8px',
                 color: 'var(--text-light)',
-                fontSize: '0.6rem',
+                fontSize: '1.2rem',
                 cursor: 'pointer',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
@@ -266,7 +266,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
                 border: '2px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '8px',
                 color: 'var(--text-light)',
-                fontSize: '0.6rem',
+                fontSize: '1.2rem',
                 cursor: 'pointer',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
@@ -297,7 +297,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
               border: '2px solid var(--accent-gold)',
               borderRadius: '8px',
               textAlign: 'center',
-              fontSize: '0.6rem',
+              fontSize: '1.2rem',
               color: 'var(--text-light)',
               marginBottom: '1rem',
             }}
@@ -317,7 +317,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
               border: '2px solid var(--accent-gold)',
               borderRadius: '8px',
               textAlign: 'center',
-              fontSize: '0.6rem',
+              fontSize: '1.2rem',
               color: 'var(--text-light)',
               marginBottom: '1rem',
             }}
@@ -340,7 +340,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
               border: '2px solid rgba(220, 38, 38, 0.6)',
               borderRadius: '8px',
               textAlign: 'center',
-              fontSize: '0.6rem',
+              fontSize: '1.2rem',
               color: '#fca5a5',
               fontFamily: 'Press Start 2P, cursive',
             }}
@@ -396,7 +396,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
             padding: '0.5rem',
             borderRadius: '8px',
             cursor: 'pointer',
-            fontSize: '0.6rem',
+            fontSize: '1.2rem',
             color: 'var(--text-light)',
             fontFamily: 'Press Start 2P, cursive',
             transition: 'all 0.2s',
@@ -435,7 +435,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
 
             <div
               style={{
-                fontSize: '0.6rem',
+                fontSize: '1.2rem',
                 padding: '0.75rem',
                 background: 'rgba(0, 0, 0, 0.3)',
                 borderRadius: '6px',
@@ -463,7 +463,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
             <div
               style={{
                 writingMode: 'vertical-rl',
-                fontSize: '0.7rem',
+                fontSize: '1.4rem',
                 color: 'var(--accent-gold)',
                 fontFamily: 'Press Start 2P, cursive',
                 letterSpacing: '0.2em',

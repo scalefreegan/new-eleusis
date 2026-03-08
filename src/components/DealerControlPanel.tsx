@@ -69,7 +69,7 @@ export const DealerControlPanel: React.FC<DealerControlPanelProps> = ({
         <div style={{ textAlign: 'center' }}>
           <div
             style={{
-              fontSize: '0.6rem',
+              fontSize: '1.2rem',
               color: 'var(--accent-gold)',
               marginBottom: '0.5rem',
               fontWeight: 'bold',
@@ -80,7 +80,7 @@ export const DealerControlPanel: React.FC<DealerControlPanelProps> = ({
           </div>
           <div
             style={{
-              fontSize: '0.7rem',
+              fontSize: '1.4rem',
               color: 'var(--text-light)',
               marginBottom: '1.5rem',
             }}
@@ -120,14 +120,14 @@ export const DealerControlPanel: React.FC<DealerControlPanelProps> = ({
               >
                 <div
                   style={{
-                    fontSize: '0.8rem',
+                    fontSize: '1.6rem',
                     color: autoVerdict ? '#00ff88' : '#ff4444',
                     fontWeight: 'bold',
                   }}
                 >
                   {autoVerdict ? '✓ AUTO: CORRECT' : '✗ AUTO: WRONG'}
                 </div>
-                <div style={{ fontSize: '0.4rem', color: 'var(--text-dim)', marginTop: '0.3rem' }}>
+                <div style={{ fontSize: '1.6rem', color: 'var(--text-dim)', marginTop: '0.3rem' }}>
                   Based on your compiled rule
                 </div>
               </div>
@@ -142,7 +142,7 @@ export const DealerControlPanel: React.FC<DealerControlPanelProps> = ({
                     border: `2px solid ${autoVerdict ? 'rgba(0, 255, 0, 0.5)' : 'rgba(255, 0, 0, 0.5)'}`,
                     borderRadius: '8px',
                     color: autoVerdict ? '#00ff00' : '#ff0000',
-                    fontSize: '0.6rem',
+                    fontSize: '1.2rem',
                     cursor: 'pointer',
                     fontFamily: 'Press Start 2P, cursive',
                     transition: 'all 0.2s',
@@ -159,7 +159,7 @@ export const DealerControlPanel: React.FC<DealerControlPanelProps> = ({
                     border: '2px solid rgba(255, 215, 0, 0.4)',
                     borderRadius: '8px',
                     color: 'var(--accent-gold)',
-                    fontSize: '0.6rem',
+                    fontSize: '1.2rem',
                     cursor: 'pointer',
                     fontFamily: 'Press Start 2P, cursive',
                     transition: 'all 0.2s',
@@ -173,7 +173,7 @@ export const DealerControlPanel: React.FC<DealerControlPanelProps> = ({
             /* Manual judgment buttons */
             <div>
               {hasAutoVerdict && overrideMode && (
-                <div style={{ fontSize: '0.4rem', color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '1.6rem', color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>
                   Override mode — choose manually:
                 </div>
               )}
@@ -186,7 +186,7 @@ export const DealerControlPanel: React.FC<DealerControlPanelProps> = ({
                     border: '2px solid rgba(0, 255, 0, 0.5)',
                     borderRadius: '8px',
                     color: '#00ff00',
-                    fontSize: '0.75rem',
+                    fontSize: '1.5rem',
                     cursor: 'pointer',
                     fontFamily: 'Press Start 2P, cursive',
                     transition: 'all 0.2s',
@@ -213,7 +213,7 @@ export const DealerControlPanel: React.FC<DealerControlPanelProps> = ({
                     border: '2px solid rgba(255, 0, 0, 0.5)',
                     borderRadius: '8px',
                     color: '#ff0000',
-                    fontSize: '0.75rem',
+                    fontSize: '1.5rem',
                     cursor: 'pointer',
                     fontFamily: 'Press Start 2P, cursive',
                     transition: 'all 0.2s',
@@ -241,7 +241,7 @@ export const DealerControlPanel: React.FC<DealerControlPanelProps> = ({
                     background: 'none',
                     border: 'none',
                     color: 'var(--text-dim)',
-                    fontSize: '0.4rem',
+                    fontSize: '1.6rem',
                     cursor: 'pointer',
                     fontFamily: 'Press Start 2P, cursive',
                   }}
@@ -256,7 +256,7 @@ export const DealerControlPanel: React.FC<DealerControlPanelProps> = ({
             <div
               style={{
                 marginTop: '1rem',
-                fontSize: '0.5rem',
+                fontSize: '1.0rem',
                 color: 'var(--text-dim)',
                 lineHeight: '1.5',
               }}

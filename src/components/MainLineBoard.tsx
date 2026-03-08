@@ -135,7 +135,7 @@ export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardPro
       >
         <h2
           style={{
-            fontSize: '1rem',
+            fontSize: '2.0rem',
             color: 'var(--accent-purple)',
             margin: 0,
           }}
@@ -172,7 +172,7 @@ export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardPro
                   border: 'none',
                   color: 'var(--text-light)',
                   cursor: 'pointer',
-                  fontSize: '0.8rem',
+                  fontSize: '1.6rem',
                   padding: '0.25rem 0.5rem',
                   fontFamily: 'Press Start 2P, cursive',
                 }}
@@ -181,7 +181,7 @@ export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardPro
               </button>
               <span
                 style={{
-                  fontSize: '0.4rem',
+                  fontSize: '1.6rem',
                   color: 'var(--text-dim)',
                   minWidth: '40px',
                   textAlign: 'center',
@@ -197,7 +197,7 @@ export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardPro
                   border: 'none',
                   color: 'var(--text-light)',
                   cursor: 'pointer',
-                  fontSize: '0.8rem',
+                  fontSize: '1.6rem',
                   padding: '0.25rem 0.5rem',
                   fontFamily: 'Press Start 2P, cursive',
                 }}
@@ -217,7 +217,7 @@ export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardPro
                 padding: '0.4rem 0.75rem',
                 borderRadius: '6px',
                 cursor: 'pointer',
-                fontSize: '0.5rem',
+                fontSize: '1.0rem',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
               }}
@@ -244,7 +244,7 @@ export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardPro
                 padding: '0.4rem 0.75rem',
                 borderRadius: '6px',
                 cursor: 'pointer',
-                fontSize: '0.4rem',
+                fontSize: '1.6rem',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
               }}
@@ -271,7 +271,7 @@ export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardPro
             justifyContent: 'center',
             height: '200px',
             color: 'var(--text-dim)',
-            fontSize: '0.65rem',
+            fontSize: '1.3rem',
           }}
         >
           Waiting for game to start...
@@ -353,7 +353,7 @@ export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardPro
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '0.75rem',
+                        fontSize: '1.5rem',
                         fontWeight: 'bold',
                         boxShadow: '0 0 10px rgba(0, 200, 255, 0.6)',
                       }}
@@ -372,7 +372,7 @@ export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardPro
                         padding: '4px 8px',
                         background: 'var(--accent-gold)',
                         borderRadius: '4px',
-                        fontSize: '0.4rem',
+                        fontSize: '1.6rem',
                         color: 'var(--bg-deep)',
                         fontWeight: 'bold',
                       }}
@@ -419,7 +419,7 @@ export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardPro
                             background: 'rgba(220, 20, 60, 0.2)',
                             border: '1px solid rgba(220, 20, 60, 0.5)',
                             borderRadius: '8px',
-                            fontSize: '0.5rem',
+                            fontSize: '1.0rem',
                             color: 'rgba(220, 20, 60, 1)',
                             whiteSpace: 'nowrap',
                           }}
@@ -452,7 +452,7 @@ export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardPro
                       top: '50%',
                       left: '50%',
                       transform: 'translate(-50%, -50%) rotate(-90deg)',
-                      fontSize: '0.4rem',
+                      fontSize: '1.6rem',
                       color: 'var(--bg-deep)',
                       whiteSpace: 'nowrap',
                       fontWeight: 'bold',
@@ -514,7 +514,7 @@ export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardPro
             borderRadius: '8px',
             display: 'flex',
             gap: '2rem',
-            fontSize: '0.5rem',
+            fontSize: '1.0rem',
             color: 'var(--text-dim)',
           }}
         >

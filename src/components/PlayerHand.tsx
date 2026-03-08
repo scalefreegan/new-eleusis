@@ -76,7 +76,7 @@ export function PlayerHand({
       {/* Left: Hand status */}
       <div
         style={{
-          fontSize: '0.6rem',
+          fontSize: '1.2rem',
           color: 'var(--text-light)',
           display: 'flex',
           gap: '1rem',
@@ -102,7 +102,7 @@ export function PlayerHand({
               border: '2px solid rgba(255, 255, 255, 0.2)',
               borderRadius: '8px',
               color: canPlay ? 'var(--text-light)' : 'var(--text-dim)',
-              fontSize: '0.5rem',
+              fontSize: '1.0rem',
               cursor: canPlay ? 'pointer' : 'not-allowed',
               fontFamily: 'Press Start 2P, cursive',
               transition: 'all 0.2s',
@@ -123,7 +123,7 @@ export function PlayerHand({
               border: '2px solid rgba(255, 255, 255, 0.2)',
               borderRadius: '8px',
               color: canAct ? 'var(--text-light)' : 'var(--text-dim)',
-              fontSize: '0.5rem',
+              fontSize: '1.0rem',
               cursor: canAct ? 'pointer' : 'not-allowed',
               fontFamily: 'Press Start 2P, cursive',
               transition: 'all 0.2s',
@@ -144,7 +144,7 @@ export function PlayerHand({
               border: '2px solid var(--accent-gold)',
               borderRadius: '8px',
               color: isProphet ? 'var(--bg-deep)' : canDeclareProphet ? 'var(--accent-gold)' : 'var(--text-dim)',
-              fontSize: '0.5rem',
+              fontSize: '1.0rem',
               cursor: canDeclareProphet ? 'pointer' : 'not-allowed',
               fontFamily: 'Press Start 2P, cursive',
               transition: 'all 0.2s',
@@ -167,7 +167,7 @@ export function PlayerHand({
             padding: '0.5rem 1rem',
             borderRadius: '8px',
             cursor: 'pointer',
-            fontSize: '0.5rem',
+            fontSize: '1.0rem',
             color: 'var(--text-light)',
             fontFamily: 'Press Start 2P, cursive',
             transition: 'all 0.2s',
@@ -199,7 +199,7 @@ export function PlayerHand({
       >
         <h2
           style={{
-            fontSize: '0.9rem',
+            fontSize: '1.8rem',
             color: 'var(--accent-blue)',
             margin: 0,
           }}
@@ -224,7 +224,7 @@ export function PlayerHand({
                 border: '2px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '8px',
                 color: canPlay ? 'var(--text-light)' : 'var(--text-dim)',
-                fontSize: '0.5rem',
+                fontSize: '1.0rem',
                 cursor: canPlay ? 'pointer' : 'not-allowed',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
@@ -245,7 +245,7 @@ export function PlayerHand({
                 border: '2px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '8px',
                 color: canAct ? 'var(--text-light)' : 'var(--text-dim)',
-                fontSize: '0.5rem',
+                fontSize: '1.0rem',
                 cursor: canAct ? 'pointer' : 'not-allowed',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
@@ -266,7 +266,7 @@ export function PlayerHand({
                 border: '2px solid var(--accent-gold)',
                 borderRadius: '8px',
                 color: isProphet ? 'var(--bg-deep)' : canDeclareProphet ? 'var(--accent-gold)' : 'var(--text-dim)',
-                fontSize: '0.5rem',
+                fontSize: '1.0rem',
                 cursor: canDeclareProphet ? 'pointer' : 'not-allowed',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
@@ -286,7 +286,7 @@ export function PlayerHand({
                 padding: '0.5rem 1rem',
                 borderRadius: '8px',
                 cursor: 'pointer',
-                fontSize: '0.5rem',
+                fontSize: '1.0rem',
                 color: 'var(--text-light)',
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
@@ -313,7 +313,7 @@ export function PlayerHand({
             justifyContent: 'center',
             height: '150px',
             color: 'var(--text-dim)',
-            fontSize: '0.65rem',
+            fontSize: '1.3rem',
           }}
         >
           No cards in hand
@@ -394,7 +394,7 @@ export function PlayerHand({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '1rem',
+                      fontSize: '2.0rem',
                       fontWeight: 'bold',
                       color: 'var(--bg-deep)',
                       boxShadow: '0 0 15px rgba(255, 215, 0, 0.8)',
@@ -413,7 +413,7 @@ export function PlayerHand({
       <div
         style={{
           marginTop: '1rem',
-          fontSize: '0.5rem',
+          fontSize: '1.0rem',
           color: 'var(--text-dim)',
           textAlign: 'center',
         }}
