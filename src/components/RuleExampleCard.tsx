@@ -74,7 +74,7 @@ export const RuleExampleCard: React.FC<RuleExampleCardProps> = ({
       </div>
 
       {/* Explanation */}
-      <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: 1.4, overflow: 'hidden' }}>
+      <div style={{ fontSize: '1rem', color: 'var(--text-dim)', lineHeight: 1.4, overflow: 'hidden' }}>
         {explanation}
         {isMismatch && (
           <span style={{ color: '#ff6400', display: 'block', marginTop: '0.2rem' }}>
@@ -87,7 +87,7 @@ export const RuleExampleCard: React.FC<RuleExampleCardProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
         <span
           style={{
-            fontSize: '0.9rem',
+            fontSize: '1rem',
             color: verdictColor,
             fontWeight: 'bold',
             whiteSpace: 'nowrap',
@@ -104,7 +104,7 @@ export const RuleExampleCard: React.FC<RuleExampleCardProps> = ({
               border: '1px solid rgba(255,255,255,0.2)',
               borderRadius: '4px',
               color: 'var(--text-dim)',
-              fontSize: '0.7rem',
+              fontSize: '1rem',
               cursor: 'pointer',
               padding: '0.15rem 0.3rem',
               fontFamily: 'Press Start 2P, cursive',
