@@ -115,10 +115,10 @@ export const useGameStore = create<GameStore>()(
       const prophetPlayer = newState.players.find(p => p.isProphet && p.type === 'human' && !p.isGod);
       const shouldWaitForProphet = prophetPlayer && prophetPlayer.id !== action.playerId;
 
-      // Judge function: AI God only — human God with compiled rule uses DealerControlPanel
+      // Judge function: AI God or compiled rule function — falls back to DealerControlPanel if neither
       const judgeCard = aiGod
         ? (last: import('../engine/types').Card, card: import('../engine/types').Card) => aiGod.judgeCard(last, card)
-        : null;
+        : newState.godRuleFunction ?? null;
 
       // Auto-judge if there's a judge function, no Prophet awaiting, and player is human
       if (judgeCard && player && player.type === 'human' && newState.mainLine.length > 0 && !shouldWaitForProphet) {
@@ -238,7 +238,7 @@ export const useGameStore = create<GameStore>()(
       const { aiGod } = get();
       const judgeCardFn = aiGod
         ? (last: import('../engine/types').Card, card: import('../engine/types').Card) => aiGod.judgeCard(last, card)
-        : previousState.godRuleFunction ?? null;
+        : newState.godRuleFunction ?? null;
       if (judgeCardFn && previousState.noPlayDeclaration && previousState.mainLine.length > 0) {
         const player = previousState.players.find(p => p.id === previousState.noPlayDeclaration!.playerId);
         if (player) {

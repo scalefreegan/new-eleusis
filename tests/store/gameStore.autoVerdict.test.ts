@@ -56,6 +56,65 @@ describe('auto-verdict via compiled rule in dispatch', () => {
     expect(state.godRuleFunction).toBeDefined();
   });
 
+  it('PLAY_CARD with godRuleFunction (no aiGod) auto-judges cards', () => {
+    // Reset rotation state so God ends up at index 0
+    useGameStore.setState({ lastGodIndex: -1, trueProphetIndex: -1 });
+
+    const s = useGameStore.getState();
+    s.startNewGame({ configs: [
+      { name: 'God', type: 'human', isGod: true },
+      { name: 'Player1', type: 'human', isGod: false },
+      { name: 'Player2', type: 'human', isGod: false },
+    ] });
+
+    // Set up a compiled rule: same suit is correct, different suit is wrong
+    const sameSuitRule = (last: Card, next: Card) => last.suit === next.suit;
+
+    useGameStore.setState((prev) => ({
+      state: {
+        ...prev.state,
+        phase: 'playing' as const,
+        godRuleFunction: sameSuitRule,
+        mainLine: [seedCard], // seed is hearts
+        currentPlayerIndex: 1,
+      },
+      aiGod: null, // No AI God — must fall back to godRuleFunction
+    }));
+
+    const player1 = useGameStore.getState().state.players[1];
+    expect(player1.hand.length).toBeGreaterThan(0);
+    const cardToPlay = player1.hand[0];
+
+    // Dispatch PLAY_CARD as human player
+    useGameStore.getState().dispatch({
+      type: 'PLAY_CARD',
+      playerId: player1.id,
+      cardIds: [cardToPlay.id],
+    });
+
+    // pendingPlay should be set immediately after PLAY_CARD
+    expect(useGameStore.getState().state.pendingPlay).toBeTruthy();
+
+    // Advance timers to allow auto-judgment to fire
+    vi.advanceTimersByTime(1000);
+
+    // After auto-judgment, JUDGE_CARD should have been dispatched
+    const finalState = useGameStore.getState().state;
+    // pendingPlay should be cleared (card was judged)
+    expect(finalState.pendingPlay).toBeFalsy();
+
+    // Verify the card was judged correctly based on the rule
+    const expectedCorrect = cardToPlay.suit === 'hearts';
+    if (expectedCorrect) {
+      // Card should be on the main line
+      expect(finalState.mainLine.some(c => c.id === cardToPlay.id)).toBe(true);
+    } else {
+      // Card should be in sidelines (wrong cards branch off)
+      const lastMainCard = finalState.mainLine[finalState.mainLine.length - 1];
+      expect(lastMainCard.branches?.some(c => c.id === cardToPlay.id)).toBe(true);
+    }
+  });
+
   it('auto-resolves DECLARE_NO_PLAY when godRuleFunction says all cards invalid', () => {
     const s = useGameStore.getState();
     s.startNewGame({ configs: [
