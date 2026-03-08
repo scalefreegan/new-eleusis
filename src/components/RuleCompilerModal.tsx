@@ -49,10 +49,16 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [preferWebGPU, setPreferWebGPU] = useState(false);
   const hasStarted = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Probe cloud availability once on mount
   useEffect(() => {
     isCloudCompilerAvailable().then(setCloudAvailable);
+  }, []);
+
+  // Abort any in-flight download on unmount
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
   }, []);
 
   const handleProgress = useCallback((progress: DownloadProgress) => {
@@ -66,6 +72,11 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
   }, []);
 
   const doCompile = useCallback(async (selectedBackend: CompilerBackend, extraClarifications?: string) => {
+    // Abort any previous in-flight compile
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setStep(selectedBackend === 'local' ? 'downloading' : 'compiling');
     setErrorMessage('');
 
@@ -74,6 +85,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
         backend: selectedBackend,
         onProgress: selectedBackend === 'local' ? handleProgress : undefined,
         preferWebGPU,
+        signal: controller.signal,
       });
       const testResult = testCompiledFunction(result.fn, result.examples);
 
@@ -83,11 +95,21 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
 
       setStep(result.ambiguities.length > 0 ? 'ambiguity' : 'confirmation');
     } catch (err) {
+      // If cancelled by user, return to backend selection silently
+      if (controller.signal.aborted) {
+        setStep('backendSelect');
+        setDownloadProgress(null);
+        return;
+      }
       const msg = err instanceof Error ? err.message : String(err);
       setErrorMessage(msg);
       setStep('error');
     }
   }, [ruleText, handleProgress, preferWebGPU]);
+
+  const handleCancelDownload = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
 
   const handleSelectBackend = (chosen: CompilerBackend) => {
     setBackend(chosen);
@@ -301,6 +323,18 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
             <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)', marginTop: '1rem' }}>
               First-time download ~900 MB · cached for future sessions
             </div>
+            <button
+              onClick={handleCancelDownload}
+              style={{
+                ...btnStyle('rgba(255, 255, 255, 0.08)'),
+                marginTop: '1rem',
+                flex: 'none',
+                width: 'auto',
+                padding: '0.5rem 1.5rem',
+              }}
+            >
+              CANCEL
+            </button>
           </div>
         )}
 

@@ -1,10 +1,10 @@
 /**
- * Unit tests for extractJson (shared JSON extraction utility).
- * Tests the fix for ne-9yi: brace-matching now skips braces inside string literals.
+ * Unit tests for extractJson and abortable (LLM backend utilities).
  */
 
 import { describe, it, expect } from 'vitest';
 import { extractJson as extractJsonFromOutput } from '../../src/services/extractJson';
+import { abortable } from '../../src/services/llmBackend';
 
 describe('extractJsonFromOutput', () => {
   it('parses plain JSON', () => {
@@ -108,5 +108,63 @@ describe('extractJsonFromOutput', () => {
     const input = '{"msg": "she said \\"{\\" and \\"}\\"."}';
     const result = extractJsonFromOutput(input) as Record<string, unknown>;
     expect(result).toEqual({ msg: 'she said "{" and "}".' });
+  });
+});
+
+// ────────────────────────────────────────────
+// abortable (ne-3ro: cancel download support)
+// ────────────────────────────────────────────
+
+describe('abortable', () => {
+  it('resolves normally when no signal is provided', async () => {
+    const result = await abortable(Promise.resolve(42));
+    expect(result).toBe(42);
+  });
+
+  it('resolves normally when signal is not aborted', async () => {
+    const controller = new AbortController();
+    const result = await abortable(Promise.resolve('ok'), controller.signal);
+    expect(result).toBe('ok');
+  });
+
+  it('rejects immediately when signal is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(abortable(Promise.resolve('ok'), controller.signal)).rejects.toThrow();
+    try {
+      await abortable(Promise.resolve('ok'), controller.signal);
+    } catch (err) {
+      expect((err as DOMException).name).toBe('AbortError');
+    }
+  });
+
+  it('rejects with AbortError when signal fires during pending promise', async () => {
+    const controller = new AbortController();
+    const neverResolves = new Promise<string>(() => {});
+
+    const promise = abortable(neverResolves, controller.signal);
+    controller.abort();
+
+    await expect(promise).rejects.toThrow();
+    try {
+      await abortable(neverResolves, controller.signal);
+    } catch (err) {
+      expect((err as DOMException).name).toBe('AbortError');
+    }
+  });
+
+  it('resolves if promise wins the race', async () => {
+    const controller = new AbortController();
+    const result = await abortable(Promise.resolve('fast'), controller.signal);
+    expect(result).toBe('fast');
+    // Aborting after resolve should be harmless
+    controller.abort();
+  });
+
+  it('propagates the original rejection if promise rejects before abort', async () => {
+    const controller = new AbortController();
+    await expect(
+      abortable(Promise.reject(new Error('original error')), controller.signal)
+    ).rejects.toThrow('original error');
   });
 });

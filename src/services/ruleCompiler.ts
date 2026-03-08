@@ -63,6 +63,8 @@ export interface LocalCompileOptions {
   onProgress?: (progress: DownloadProgress) => void;
   /** Whether to prefer WebGPU acceleration when available */
   preferWebGPU?: boolean;
+  /** If provided, aborting this signal cancels the download/compile */
+  signal?: AbortSignal;
 }
 
 export interface CompiledRule {
@@ -434,6 +436,7 @@ export async function compileRuleLocal(
   const backend = await getLLMBackend({
     onProgress: opts.onProgress,
     preferWebGPU: opts.preferWebGPU ?? false,
+    signal: opts.signal,
   });
 
   const prompt = buildLocalCompilerPrompt(ruleText, clarifications);

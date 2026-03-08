@@ -31,6 +31,8 @@ export interface LLMBackendOptions {
   onProgress?: (progress: DownloadProgress) => void;
   /** If true, prefer WebLLM when WebGPU is available (currently unused — WebLLM not yet implemented) */
   preferWebGPU?: boolean;
+  /** If provided, aborting this signal cancels the download and rejects the promise */
+  signal?: AbortSignal;
 }
 
 export interface LLMBackend {
@@ -47,6 +49,26 @@ const DTYPE = 'q4' as const;
 
 // Max tokens to generate — the function body + ambiguities JSON is small
 const MAX_NEW_TOKENS = 512;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Abort helper
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Race a promise against an AbortSignal; rejects with AbortError when aborted. */
+export function abortable<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) {
+    return Promise.reject(signal.reason ?? new DOMException('Download cancelled', 'AbortError'));
+  }
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason ?? new DOMException('Download cancelled', 'AbortError'));
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (v) => { signal.removeEventListener('abort', onAbort); resolve(v); },
+      (e) => { signal.removeEventListener('abort', onAbort); reject(e); },
+    );
+  });
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Singleton: keep one loaded backend alive across calls
@@ -180,7 +202,7 @@ export async function getLLMBackend(opts: LLMBackendOptions = {}): Promise<LLMBa
   // TODO: WebLLM (WebGPU) acceleration — install @mlc-ai/web-llm and wire up
   // createWebLLMBackend() here when opts.preferWebGPU && isWebGPUAvailable().
 
-  _initPromise = createTransformersBackend(opts).then(
+  _initPromise = abortable(createTransformersBackend(opts), opts.signal).then(
     (backend) => {
       _singleton = backend;
       _initPromise = null;
