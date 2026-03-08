@@ -104,7 +104,7 @@ export const RuleExampleCard: React.FC<RuleExampleCardProps> = ({
               border: '1px solid rgba(255,255,255,0.2)',
               borderRadius: '4px',
               color: 'var(--text-dim)',
-              fontSize: '0.7rem',
+              fontSize: '0.8rem',
               cursor: 'pointer',
               padding: '0.15rem 0.3rem',
               fontFamily: 'Press Start 2P, cursive',

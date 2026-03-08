@@ -214,11 +214,11 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
               <div style={{ fontSize: '1.0rem', color: 'var(--text-light)', marginBottom: '0.4rem' }}>
                 ⬡ Local AI (recommended)
               </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
                 Qwen2.5-Coder 1.5B · runs in browser · works offline &amp; on Android
                 {webGPUAvailable && <span style={{ color: '#88ff88' }}> · WebGPU available (fast)</span>}
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#ffaa44', marginTop: '0.3rem' }}>
+              <div style={{ fontSize: '0.8rem', color: '#ffaa44', marginTop: '0.3rem' }}>
                 ~900 MB download on first use (cached)
               </div>
             </button>
@@ -233,7 +233,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
                     onChange={(e) => setPreferWebGPU(e.target.checked)}
                     style={{ accentColor: 'var(--accent-purple)' }}
                   />
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
                     Use WebGPU acceleration (3–5× faster, desktop Chrome/Edge only)
                   </span>
                 </label>
@@ -257,7 +257,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
               <div style={{ fontSize: '1.0rem', color: 'var(--text-light)', marginBottom: '0.4rem' }}>
                 ☁ Cloud AI (Claude)
               </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
                 Highest quality · requires Claude CLI &amp; dev server · instant
                 {cloudAvailable === false && (
                   <span style={{ color: '#ff6644' }}> · not available (run npm run dev)</span>
@@ -286,7 +286,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
             </div>
             {downloadProgress && (
               <>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
                   {downloadProgress.status}
                 </div>
                 {downloadProgress.progress >= 0 && (
@@ -311,14 +311,14 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
                   </div>
                 )}
                 {downloadProgress.total > 0 && (
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
                     {(downloadProgress.loaded / 1_048_576).toFixed(0)} /&nbsp;
                     {(downloadProgress.total / 1_048_576).toFixed(0)} MB
                   </div>
                 )}
               </>
             )}
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '1rem' }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '1rem' }}>
               First-time download ~900 MB · cached for future sessions
             </div>
             <button
@@ -347,7 +347,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
               {backend === 'local' ? 'Local AI is generating a deterministic function' : 'Claude is generating a deterministic function'}
             </div>
             {downloadProgress && (
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.5rem' }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.5rem' }}>
                 {downloadProgress.status}
               </div>
             )}
