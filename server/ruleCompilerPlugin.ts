@@ -8,6 +8,7 @@ import type { Plugin } from 'vite';
 import { spawn } from 'child_process';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { buildCompilerPrompt } from './compilerPrompt';
+import { extractJson as extractJsonShared } from '../src/services/extractJson';
 
 interface CompileRequest {
   ruleText: string;
@@ -27,69 +28,13 @@ interface CompileResponse {
   ambiguities: string[];
 }
 
-/** Extract the first JSON object from a string (handles markdown fences etc.) */
+/** Extract JSON from text, throwing on failure (server needs errors, not null) */
 function extractJson(text: string): unknown {
-  let directError: unknown;
-  let fenceError: unknown;
-  let braceError: unknown;
-
-  // Direct parse
-  try {
-    return JSON.parse(text);
-  } catch (e) {
-    directError = e;
+  const result = extractJsonShared(text);
+  if (result === null) {
+    throw new Error(`Could not extract JSON. Raw (500 chars): ${text.slice(0, 500)}`);
   }
-
-  // Fenced code block
-  const fenceMatch = text.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
-  if (fenceMatch) {
-    try {
-      return JSON.parse(fenceMatch[1]);
-    } catch (e) {
-      fenceError = e;
-    }
-  }
-
-  // First bare { ... } — track brace depth to find the matching close,
-  // skipping braces inside JSON string literals
-  const bracePos = text.indexOf('{');
-  if (bracePos !== -1) {
-    let depth = 0;
-    let inString = false;
-    for (let i = bracePos; i < text.length; i++) {
-      const ch = text[i];
-      if (inString) {
-        if (ch === '\\') {
-          i++; // skip escaped character
-        } else if (ch === '"') {
-          inString = false;
-        }
-        continue;
-      }
-      if (ch === '"') {
-        inString = true;
-      } else if (ch === '{') {
-        depth++;
-      } else if (ch === '}') {
-        depth--;
-        if (depth === 0) {
-          try {
-            return JSON.parse(text.slice(bracePos, i + 1));
-          } catch (e) {
-            braceError = e;
-          }
-          break;
-        }
-      }
-    }
-    if (!braceError) {
-      braceError = new Error('No matching closing brace found');
-    }
-  }
-
-  throw new Error(
-    `Could not extract JSON. direct: ${directError}, fence: ${fenceError ?? 'no fence'}, brace: ${braceError ?? 'no brace'}. Raw (500 chars): ${text.slice(0, 500)}`
-  );
+  return result;
 }
 
 /** Timeout for the claude CLI subprocess (ms). Client timeout must be >= this. */

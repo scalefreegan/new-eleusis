@@ -48,7 +48,6 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
   const [cloudAvailable, setCloudAvailable] = useState<boolean | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [preferWebGPU, setPreferWebGPU] = useState(false);
-  const hasStarted = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
 
   // Probe cloud availability once on mount
@@ -114,7 +113,6 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
   const handleSelectBackend = (chosen: CompilerBackend) => {
     setBackend(chosen);
     setPreferredBackend(chosen);
-    hasStarted.current = true;
     void doCompile(chosen);
   };
 

@@ -11,8 +11,6 @@ interface RuleExampleCardProps {
   index: number;
   /** If provided, shows whether the compiled function agrees with the expected verdict */
   actualResult?: boolean;
-  /** If true, God has manually overridden the expected verdict */
-  overridden?: boolean;
   onOverride?: (index: number, newExpected: boolean) => void;
 }
 
@@ -27,7 +25,6 @@ export const RuleExampleCard: React.FC<RuleExampleCardProps> = ({
   example,
   index,
   actualResult,
-  overridden,
   onOverride,
 }) => {
   const { lastCard, newCard, expected, explanation } = example;
@@ -37,8 +34,6 @@ export const RuleExampleCard: React.FC<RuleExampleCardProps> = ({
   const verdictColor = expected ? '#00ff88' : '#ff4444';
   const rowBg = isMismatch
     ? 'rgba(255, 100, 0, 0.15)'
-    : overridden
-    ? 'rgba(255, 215, 0, 0.1)'
     : 'rgba(255, 255, 255, 0.03)';
 
   return (
