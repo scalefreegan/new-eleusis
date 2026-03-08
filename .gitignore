@@ -36,3 +36,6 @@ android/local.properties
 .claude/
 .beads/
 .logs/
+
+# Gas Town (added by gt)
+__pycache__/
