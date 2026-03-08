@@ -92,6 +92,9 @@ function extractJson(text: string): unknown {
   );
 }
 
+/** Timeout for the claude CLI subprocess (ms). Client timeout must be >= this. */
+export const CLAUDE_CLI_TIMEOUT_MS = 60_000;
+
 /** Run `claude -p <prompt> --output-format json --max-turns 1` */
 function runClaudeCli(prompt: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -106,8 +109,8 @@ function runClaudeCli(prompt: string): Promise<string> {
 
     const timeoutId = setTimeout(() => {
       proc.kill('SIGTERM');
-      reject(new Error('claude CLI timed out after 60s'));
-    }, 60_000);
+      reject(new Error(`claude CLI timed out after ${CLAUDE_CLI_TIMEOUT_MS / 1000}s`));
+    }, CLAUDE_CLI_TIMEOUT_MS);
 
     proc.stdout.on('data', (chunk: Buffer) => {
       stdout += chunk.toString();

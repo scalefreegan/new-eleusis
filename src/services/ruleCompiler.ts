@@ -382,11 +382,13 @@ async function compileRuleCloud(
   ruleText: string,
   clarifications?: string
 ): Promise<CompiledRule> {
+  // Server kills the claude CLI subprocess at 60s (CLAUDE_CLI_TIMEOUT_MS in
+  // ruleCompilerPlugin.ts). Allow 5s extra for HTTP round-trip overhead.
   const res = await fetch('/api/compile-rule', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ruleText, clarifications }),
-    signal: AbortSignal.timeout(90_000),
+    signal: AbortSignal.timeout(65_000),
   });
 
   if (!res.ok) {
