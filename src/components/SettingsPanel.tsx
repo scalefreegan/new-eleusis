@@ -11,14 +11,12 @@ interface SettingsConfig {
   soundVolume: number;
   soundEnabled: boolean;
   animationSpeed: 'slow' | 'normal' | 'fast';
-  autoCollapseHand: boolean;
 }
 
 const DEFAULT_SETTINGS: SettingsConfig = {
   soundVolume: 0.3,
   soundEnabled: true,
   animationSpeed: 'normal',
-  autoCollapseHand: false,
 };
 
 const SETTINGS_KEY = 'eleusis-settings';
@@ -69,10 +67,6 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
   const handleAnimationSpeedChange = (speed: 'slow' | 'normal' | 'fast') => {
     setSettings({ ...settings, animationSpeed: speed });
-  };
-
-  const handleAutoCollapseToggle = () => {
-    setSettings({ ...settings, autoCollapseHand: !settings.autoCollapseHand });
   };
 
   return (
@@ -204,21 +198,6 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               </div>
             </section>
 
-            {/* Hand Settings */}
-            <section>
-              <h2 style={{ color: 'var(--accent-purple)', fontSize: '1.7rem', marginBottom: '1rem' }}>
-                🎴 HAND
-              </h2>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={settings.autoCollapseHand}
-                  onChange={handleAutoCollapseToggle}
-                  style={{ cursor: 'pointer', width: '20px', height: '20px' }}
-                />
-                <span style={{ color: 'var(--text-light)' }}>Auto-collapse hand when not your turn</span>
-              </label>
-            </section>
           </div>
 
           <button

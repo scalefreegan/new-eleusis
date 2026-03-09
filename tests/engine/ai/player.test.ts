@@ -3,8 +3,6 @@ import {
   selectRandomCard,
   selectCardCount,
   selectCardsToPlay,
-  shouldDeclareNoPlay,
-  shouldDeclareProphet,
   createHypothesisEngine,
   updateHypothesisEngine,
 } from '../../../src/engine/ai/player';
@@ -90,22 +88,6 @@ describe('AI Player', () => {
       const cardIds = selectCardsToPlay(mockCards, mockState);
       const uniqueIds = new Set(cardIds);
       expect(uniqueIds.size).toBe(cardIds.length);
-    });
-  });
-
-  describe('shouldDeclareNoPlay', () => {
-    it('returns false for Phase 3 AI', () => {
-      expect(shouldDeclareNoPlay(mockCards, mockState)).toBe(false);
-    });
-
-    it('returns false even with empty hand', () => {
-      expect(shouldDeclareNoPlay([], mockState)).toBe(false);
-    });
-  });
-
-  describe('shouldDeclareProphet', () => {
-    it('returns false for Phase 3 AI', () => {
-      expect(shouldDeclareProphet(mockState, 'player1')).toBe(false);
     });
   });
 

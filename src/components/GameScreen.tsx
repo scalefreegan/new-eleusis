@@ -270,7 +270,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
 
         {/* MainLine Board Area - Maximized */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <MainLineBoard mainLine={state.mainLine} prophetMarkerIndex={state.prophetMarkerIndex} totalCardsPlayed={state.totalCardsPlayed} />
+          <MainLineBoard mainLine={state.mainLine} prophetMarkerIndex={state.prophetMarkerIndex} />
         </div>
 
         {/* Cheat Mode - Show Rule */}

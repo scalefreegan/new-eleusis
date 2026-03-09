@@ -12,7 +12,6 @@ import { getSuitSymbol } from '../utils/cardUtils';
 interface MainLineBoardProps {
   mainLine: PlayedCard[];
   prophetMarkerIndex?: number;
-  totalCardsPlayed: number;
 }
 
 export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardProps) {

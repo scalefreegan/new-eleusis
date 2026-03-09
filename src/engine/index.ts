@@ -76,8 +76,6 @@ export {
   selectRandomCard,
   selectCardCount,
   selectCardsToPlay,
-  shouldDeclareNoPlay,
-  shouldDeclareProphet,
   createHypothesisEngine,
   updateHypothesisEngine,
 } from './ai/player';

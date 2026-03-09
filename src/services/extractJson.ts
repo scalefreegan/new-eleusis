@@ -7,19 +7,13 @@
 
 /** Extract the first JSON object from a string (strips markdown fences, preamble) */
 export function extractJson(text: string): unknown {
-  const errors: string[] = [];
-
   // Direct parse
-  try { return JSON.parse(text); } catch (e) {
-    errors.push(`direct: ${e instanceof Error ? e.message : String(e)}`);
-  }
+  try { return JSON.parse(text); } catch { /* fall through */ }
 
   // Fenced code block ```json ... ```
   const fenceMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
   if (fenceMatch) {
-    try { return JSON.parse(fenceMatch[1]); } catch (e) {
-      errors.push(`fence: ${e instanceof Error ? e.message : String(e)}`);
-    }
+    try { return JSON.parse(fenceMatch[1]); } catch { /* fall through */ }
   }
 
   // First bare { ... }
@@ -45,9 +39,7 @@ export function extractJson(text: string): unknown {
       } else if (ch === '}') {
         depth--;
         if (depth === 0) {
-          try { return JSON.parse(text.slice(start, i + 1)); } catch (e) {
-            errors.push(`brace: ${e instanceof Error ? e.message : String(e)}`);
-          }
+          try { return JSON.parse(text.slice(start, i + 1)); } catch { /* fall through */ }
           break;
         }
       }

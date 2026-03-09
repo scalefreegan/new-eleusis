@@ -373,9 +373,6 @@ export async function isCloudCompilerAvailable(): Promise<boolean> {
   }
 }
 
-/** @deprecated Use isCloudCompilerAvailable() — local backend is always available */
-export const isCompilerAvailable = isCloudCompilerAvailable;
-
 // ────────────────────────────────────────────
 // Cloud compile (Claude CLI via dev server)
 // ────────────────────────────────────────────

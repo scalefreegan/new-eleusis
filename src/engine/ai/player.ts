@@ -64,22 +64,6 @@ export function selectCardsToPlay(
 }
 
 /**
- * AI decides whether to declare "No Play"
- * For now, never declares no play (always tries to play)
- */
-export function shouldDeclareNoPlay(_hand: Card[], _state: GameState): boolean {
-  return false;
-}
-
-/**
- * AI decides whether to declare as Prophet
- * For now, never declares prophet
- */
-export function shouldDeclareProphet(_state: GameState, _playerId: string): boolean {
-  return false;
-}
-
-/**
  * Create a new hypothesis engine for an AI player
  */
 export function createHypothesisEngine(): HypothesisEngine {
