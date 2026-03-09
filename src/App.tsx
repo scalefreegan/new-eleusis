@@ -3,6 +3,7 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { createBackgroundShader } from './shaders/background';
 import { StartMenu } from './components/StartMenu';
 import { GameScreen } from './components/GameScreen';
+import { GameErrorBoundary } from './components/GameErrorBoundary';
 import { RuleCompilerModal } from './components/RuleCompilerModal';
 import { useGameStore } from './store/gameStore';
 import type { PlayerConfig, Card } from './engine/types';
@@ -138,7 +139,9 @@ function App() {
         />
       )}
       {appState === 'game' && (
-        <GameScreen onReturnToMenu={handleReturnToMenu} />
+        <GameErrorBoundary onReset={handleReturnToMenu}>
+          <GameScreen onReturnToMenu={handleReturnToMenu} />
+        </GameErrorBoundary>
       )}
     </div>
   );
