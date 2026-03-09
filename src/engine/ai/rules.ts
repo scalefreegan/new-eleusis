@@ -325,14 +325,14 @@ export const RULE_BANK: Rule[] = [
   },
   {
     name: 'rank-modulo-suit-count',
-    description: 'Rank value modulo 4 equals suit index (H=0, D=1, C=2, S=3)',
+    description: 'Rank value modulo 4 equals suit index (S=0, H=1, D=2, C=3)',
     difficulty: 'hard',
     judge: (_lastCard, newCard) => {
       const suitIndex: Record<string, number> = {
-        'hearts': 0,
-        'diamonds': 1,
-        'clubs': 2,
-        'spades': 3,
+        'spades': 0,
+        'hearts': 1,
+        'diamonds': 2,
+        'clubs': 3,
       };
       const rankValue = getRankValue(newCard.rank);
       return rankValue % 4 === suitIndex[newCard.suit];

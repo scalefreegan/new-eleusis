@@ -689,15 +689,15 @@ describe('AI rules', () => {
     it('accepts correct modulo match', () => {
       const rule = getRuleByName('rank-modulo-suit-count')!;
       const s5: Card = { suit: 'spades', rank: '5', id: 's-5-0' };
-      const h4: Card = { suit: 'hearts', rank: '4', id: 'h-4-0' };
-      expect(rule.judge(s5, h4)).toBe(true); // 4 % 4 = 0 (hearts)
+      const h5: Card = { suit: 'hearts', rank: '5', id: 'h-5-0' };
+      expect(rule.judge(s5, h5)).toBe(true); // 5 % 4 = 1 (hearts=1)
     });
 
     it('rejects incorrect modulo', () => {
       const rule = getRuleByName('rank-modulo-suit-count')!;
       const s5: Card = { suit: 'spades', rank: '5', id: 's-5-0' };
-      const h5: Card = { suit: 'hearts', rank: '5', id: 'h-5-0' };
-      expect(rule.judge(s5, h5)).toBe(false); // 5 % 4 = 1 (not hearts)
+      const h4: Card = { suit: 'hearts', rank: '4', id: 'h-4-0' };
+      expect(rule.judge(s5, h4)).toBe(false); // 4 % 4 = 0 (not hearts=1)
     });
   });
 

@@ -4,6 +4,7 @@
  */
 
 import type { Card, PlayedCard } from '../types';
+import { getRankValue } from '../deck';
 import { RULE_BANK, type Rule } from './rules';
 
 /**
@@ -118,8 +119,8 @@ export class HypothesisEngine {
       .filter(h => h.consistent);
 
     if (consistentHypotheses.length === 0) {
-      // No consistent hypotheses, play randomly
-      return Math.random();
+      // No consistent hypotheses, use deterministic score based on card rank
+      return getRankValue(candidateCard.rank) / 13;
     }
 
     // Count how many hypotheses predict success vs failure
