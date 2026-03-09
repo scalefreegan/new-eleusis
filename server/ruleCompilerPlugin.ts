@@ -140,6 +140,11 @@ export function ruleCompilerPlugin(): Plugin {
             return;
           }
 
+          if (clarifications !== undefined && (typeof clarifications !== 'string' || clarifications.length > 5000)) {
+            sendJson(res, 400, { error: 'clarifications must be a string of at most 5000 characters' });
+            return;
+          }
+
           const prompt = buildCompilerPrompt(ruleText.trim(), clarifications);
 
           console.log('[rule-compiler] Invoking claude CLI for rule:', ruleText.slice(0, 80));
