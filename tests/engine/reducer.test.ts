@@ -164,6 +164,10 @@ describe('gameReducer', () => {
         playerIds: ['dealer', 'player1', 'player2'],
       });
       initialState = gameReducer(initialState, {
+        type: 'DEAL_CARDS',
+        count: 7,
+      });
+      initialState = gameReducer(initialState, {
         type: 'DECLARE_PROPHET',
         playerId: 'player1',
       });
@@ -177,6 +181,45 @@ describe('gameReducer', () => {
 
       const player = state.players.find(p => p.id === 'player1');
       expect(player?.isProphet).toBe(false);
+    });
+
+    it('restores hand from prophetHandAside', () => {
+      const savedHand = initialState.prophetHandAside;
+      expect(savedHand).toBeDefined();
+      expect(savedHand!.length).toBeGreaterThan(0);
+
+      const state = gameReducer(initialState, {
+        type: 'RESIGN_PROPHET',
+        playerId: 'player1',
+      });
+
+      const player = state.players.find(p => p.id === 'player1');
+      expect(player?.hand).toEqual(savedHand);
+    });
+
+    it('clears prophetHandAside after restoration', () => {
+      const state = gameReducer(initialState, {
+        type: 'RESIGN_PROPHET',
+        playerId: 'player1',
+      });
+
+      expect(state.prophetHandAside).toBeUndefined();
+    });
+
+    it('does not crash when prophetHandAside is undefined', () => {
+      // Force prophetHandAside to undefined
+      const stateWithoutAside = { ...initialState, prophetHandAside: undefined };
+      const playerBefore = stateWithoutAside.players.find(p => p.id === 'player1');
+      const handBefore = playerBefore?.hand;
+
+      const state = gameReducer(stateWithoutAside, {
+        type: 'RESIGN_PROPHET',
+        playerId: 'player1',
+      });
+
+      const player = state.players.find(p => p.id === 'player1');
+      expect(player?.isProphet).toBe(false);
+      expect(player?.hand).toEqual(handBefore);
     });
   });
 

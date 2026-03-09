@@ -335,7 +335,12 @@ function declareProphet(state: GameState, action: { type: 'DECLARE_PROPHET'; pla
 function resignProphet(state: GameState, action: { type: 'RESIGN_PROPHET'; playerId: string }): GameState {
   const updatedPlayers = state.players.map(p => {
     if (p.id === action.playerId) {
-      return { ...p, isProphet: false, wasProphet: true };
+      return {
+        ...p,
+        isProphet: false,
+        wasProphet: true,
+        hand: state.prophetHandAside ? [...state.prophetHandAside] : p.hand,
+      };
     }
     return p;
   });
@@ -343,6 +348,7 @@ function resignProphet(state: GameState, action: { type: 'RESIGN_PROPHET'; playe
   return {
     ...state,
     players: updatedPlayers,
+    prophetHandAside: undefined,
   };
 }
 
