@@ -5,6 +5,7 @@
 import React from 'react';
 import { Card as CardComponent } from './Card';
 import type { CardExample } from '../services/ruleCompiler';
+import { getSuitSymbol } from '../utils/cardUtils';
 
 interface RuleExampleCardProps {
   example: CardExample;
@@ -12,13 +13,6 @@ interface RuleExampleCardProps {
   /** If provided, shows whether the compiled function agrees with the expected verdict */
   actualResult?: boolean;
   onOverride?: (index: number, newExpected: boolean) => void;
-}
-
-function getSuitSymbol(suit: string): '♥' | '♦' | '♣' | '♠' {
-  const map: Record<string, '♥' | '♦' | '♣' | '♠'> = {
-    hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠',
-  };
-  return map[suit] || '♥';
 }
 
 export const RuleExampleCard: React.FC<RuleExampleCardProps> = ({

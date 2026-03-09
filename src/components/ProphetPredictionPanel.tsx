@@ -5,22 +5,13 @@
 import { GlassPanel } from './GlassPanel';
 import { Card as CardComponent } from './Card';
 import type { GameState } from '../engine';
+import { getSuitSymbol } from '../utils/cardUtils';
 
 interface ProphetPredictionPanelProps {
   state: GameState;
   prophetId: string;
   onPredictRight: () => void;
   onPredictWrong: () => void;
-}
-
-function getSuitSymbol(suit: string): '♥' | '♦' | '♣' | '♠' {
-  const suitMap: Record<string, '♥' | '♦' | '♣' | '♠'> = {
-    hearts: '♥',
-    diamonds: '♦',
-    clubs: '♣',
-    spades: '♠',
-  };
-  return suitMap[suit] || '♥';
 }
 
 export function ProphetPredictionPanel({

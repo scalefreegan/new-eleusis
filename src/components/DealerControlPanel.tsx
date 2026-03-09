@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { GlassPanel } from './GlassPanel';
 import { Card as CardComponent } from './Card';
 import type { Card } from '../engine/types';
+import { getSuitSymbol } from '../utils/cardUtils';
 
 interface DealerControlPanelProps {
   pendingCard: Card;
@@ -16,16 +17,6 @@ interface DealerControlPanelProps {
   onJudge: (correct: boolean) => void;
   /** Pre-computed verdict from compiled God rule. When provided, shows auto-judge UI. */
   autoVerdict?: boolean;
-}
-
-function getSuitSymbol(suit: string): '♥' | '♦' | '♣' | '♠' {
-  const suitMap: Record<string, '♥' | '♦' | '♣' | '♠'> = {
-    hearts: '♥',
-    diamonds: '♦',
-    clubs: '♣',
-    spades: '♠',
-  };
-  return suitMap[suit] || '♥';
 }
 
 export const DealerControlPanel: React.FC<DealerControlPanelProps> = ({

@@ -3,20 +3,7 @@
  */
 
 import type { GameState, PlayedCard } from './types';
-
-/**
- * Helper function to flatten all played cards (main line + branches)
- */
-function flattenPlayedCards(mainLine: PlayedCard[]): PlayedCard[] {
-  const all: PlayedCard[] = [];
-  for (const card of mainLine) {
-    all.push(card);
-    if (card.branches) {
-      all.push(...card.branches);
-    }
-  }
-  return all;
-}
+import { flattenPlayedCards } from './utils';
 
 /**
  * Check if a player can play a card

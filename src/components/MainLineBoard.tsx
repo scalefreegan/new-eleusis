@@ -7,21 +7,12 @@ import { motion } from 'motion/react';
 import { Card } from './Card';
 import { GlassPanel } from './GlassPanel';
 import type { PlayedCard } from '../engine';
+import { getSuitSymbol } from '../utils/cardUtils';
 
 interface MainLineBoardProps {
   mainLine: PlayedCard[];
   prophetMarkerIndex?: number;
   totalCardsPlayed: number;
-}
-
-function getSuitSymbol(suit: string): '♥' | '♦' | '♣' | '♠' {
-  const suitMap: Record<string, '♥' | '♦' | '♣' | '♠'> = {
-    hearts: '♥',
-    diamonds: '♦',
-    clubs: '♣',
-    spades: '♠',
-  };
-  return suitMap[suit] || '♥';
 }
 
 export function MainLineBoard({ mainLine, prophetMarkerIndex }: MainLineBoardProps) {
