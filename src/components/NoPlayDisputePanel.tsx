@@ -126,14 +126,7 @@ export function NoPlayDisputePanel({
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 255, 0, 0.4)';
-                e.currentTarget.style.borderColor = 'rgba(0, 255, 0, 0.8)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 255, 0, 0.2)';
-                e.currentTarget.style.borderColor = 'rgba(0, 255, 0, 0.5)';
-              }}
+              className="btn-hover-noplay-accept"
             >
               ✓ Accept
             </button>
@@ -151,14 +144,7 @@ export function NoPlayDisputePanel({
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 0, 0, 0.4)';
-                e.currentTarget.style.borderColor = 'rgba(255, 0, 0, 0.8)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 0, 0, 0.2)';
-                e.currentTarget.style.borderColor = 'rgba(255, 0, 0, 0.5)';
-              }}
+              className="btn-hover-noplay-reject"
             >
               ✗ Reject
             </button>

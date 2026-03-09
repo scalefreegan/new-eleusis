@@ -164,14 +164,7 @@ export function PlayerHand({
             transition: 'all 0.2s',
             whiteSpace: 'nowrap',
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'var(--accent-purple)';
-            e.currentTarget.style.transform = 'scale(1.05)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'var(--accent-blue)';
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
+          className="btn-hover-toggle-expand"
         >
           ▲ EXPAND
         </button>
@@ -283,12 +276,7 @@ export function PlayerHand({
                 transition: 'all 0.2s',
                 whiteSpace: 'nowrap',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--accent-purple)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'var(--accent-blue)';
-              }}
+              className="btn-hover-toggle"
             >
               ▼ Hide
             </button>

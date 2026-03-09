@@ -226,12 +226,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--accent-gold)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = showCheat ? 'var(--accent-gold)' : 'rgba(255, 255, 255, 0.2)';
-              }}
+              className="btn-hover-border-gold"
               title="Toggle rule visibility (cheat mode)"
             >
               👁
@@ -249,12 +244,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--accent-blue)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-              }}
+              className="btn-hover-border-blue"
             >
               ?
             </button>
@@ -271,12 +261,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
                 fontFamily: 'Press Start 2P, cursive',
                 transition: 'all 0.2s',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--accent-purple)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-              }}
+              className="btn-hover-border-purple"
             >
               ⚙
             </button>
@@ -403,14 +388,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
             zIndex: 10,
             whiteSpace: 'nowrap',
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'var(--accent-gold)';
-            e.currentTarget.style.color = 'var(--bg-deep)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'var(--accent-purple)';
-            e.currentTarget.style.color = 'var(--text-light)';
-          }}
+          className="btn-hover-scoreboard"
         >
           {scoreboardCollapsed ? '◀' : '▶'}
         </button>

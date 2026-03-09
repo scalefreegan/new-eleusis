@@ -183,16 +183,7 @@ export const DealerControlPanel: React.FC<DealerControlPanelProps> = ({
                     transition: 'all 0.2s',
                     fontWeight: 'bold',
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(0, 255, 0, 0.5)';
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                    e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.5)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(0, 200, 100, 0.3)';
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
+                  className="btn-hover-judge-correct"
                 >
                   ✓ CORRECT
                 </button>
@@ -210,16 +201,7 @@ export const DealerControlPanel: React.FC<DealerControlPanelProps> = ({
                     transition: 'all 0.2s',
                     fontWeight: 'bold',
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(220, 20, 60, 0.5)';
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                    e.currentTarget.style.boxShadow = '0 0 20px rgba(255, 0, 0, 0.5)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(220, 20, 60, 0.3)';
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
+                  className="btn-hover-judge-wrong"
                 >
                   ✗ WRONG
                 </button>

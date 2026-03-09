@@ -210,6 +210,73 @@ body {
   }
 }
 
+/* ── Hover effect classes (replacing inline onMouseEnter/onMouseLeave) ── */
+
+/* PlayerHand: expand/collapse toggle */
+.btn-hover-toggle:hover {
+  background: var(--accent-purple) !important;
+}
+.btn-hover-toggle-expand:hover {
+  background: var(--accent-purple) !important;
+  transform: scale(1.05);
+}
+
+/* GameScreen: toolbar border highlights */
+.btn-hover-border-gold:hover {
+  border-color: var(--accent-gold) !important;
+}
+.btn-hover-border-blue:hover {
+  border-color: var(--accent-blue) !important;
+}
+.btn-hover-border-purple:hover {
+  border-color: var(--accent-purple) !important;
+}
+
+/* GameScreen: scoreboard collapse toggle */
+.btn-hover-scoreboard:hover {
+  background: var(--accent-gold) !important;
+  color: var(--bg-deep) !important;
+}
+
+/* DealerControlPanel: judge buttons */
+.btn-hover-judge-correct:hover {
+  background: rgba(0, 255, 0, 0.5) !important;
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+}
+.btn-hover-judge-wrong:hover {
+  background: rgba(220, 20, 60, 0.5) !important;
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+}
+
+/* ProphetPredictionPanel: prediction buttons */
+.btn-hover-predict-correct:hover {
+  background: rgba(0, 255, 0, 0.5) !important;
+  transform: scale(1.05);
+}
+.btn-hover-predict-wrong:hover {
+  background: rgba(220, 20, 60, 0.5) !important;
+  transform: scale(1.05);
+}
+
+/* NoPlayDisputePanel: accept/reject buttons */
+.btn-hover-noplay-accept:hover {
+  background: rgba(0, 255, 0, 0.4) !important;
+  border-color: rgba(0, 255, 0, 0.8) !important;
+}
+.btn-hover-noplay-reject:hover {
+  background: rgba(255, 0, 0, 0.4) !important;
+  border-color: rgba(255, 0, 0, 0.8) !important;
+}
+
+/* TurnTransitionOverlay: ready button */
+.btn-hover-ready:hover {
+  background: var(--accent-gold) !important;
+  color: var(--bg-deep) !important;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.6) !important;
+}
+
 /* Prevent sticky hover states on touch devices */
 @media (hover: none) {
   button:hover,

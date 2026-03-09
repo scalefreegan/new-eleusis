@@ -106,14 +106,7 @@ export function ProphetPredictionPanel({
                 transition: 'all 0.2s',
                 fontWeight: 'bold',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 255, 0, 0.5)';
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 200, 100, 0.3)';
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
+              className="btn-hover-predict-correct"
             >
               ✓ CORRECT
             </button>
@@ -131,14 +124,7 @@ export function ProphetPredictionPanel({
                 transition: 'all 0.2s',
                 fontWeight: 'bold',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(220, 20, 60, 0.5)';
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(220, 20, 60, 0.3)';
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
+              className="btn-hover-predict-wrong"
             >
               ✗ INCORRECT
             </button>

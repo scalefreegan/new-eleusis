@@ -95,16 +95,7 @@ export const TurnTransitionOverlay: React.FC<TurnTransitionOverlayProps> = ({
               transition: 'all 0.2s',
               boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--accent-gold)';
-              e.currentTarget.style.color = 'var(--bg-deep)';
-              e.currentTarget.style.boxShadow = '0 0 30px rgba(255, 215, 0, 0.6)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--accent-purple)';
-              e.currentTarget.style.color = 'var(--text-light)';
-              e.currentTarget.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.3)';
-            }}
+            className="btn-hover-ready"
           >
             I'M READY
           </motion.button>
