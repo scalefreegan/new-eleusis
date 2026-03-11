@@ -124,8 +124,10 @@ async function createTransformersBackend(
 ): Promise<LLMBackend> {
   const { pipeline, env } = await import('@huggingface/transformers');
 
-  // Use local cache; allow remote fallback
-  env.allowLocalModels = true;
+  // Models come from Hugging Face CDN and are cached in the browser Cache API.
+  // allowLocalModels must be false — otherwise Transformers.js tries to fetch
+  // from local paths first, which Vite serves as index.html (HTML, not JSON).
+  env.allowLocalModels = false;
   env.allowRemoteModels = true;
 
   type ProgressEvent = {
