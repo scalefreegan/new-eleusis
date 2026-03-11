@@ -20,6 +20,29 @@ import { createLCG, randomCard } from './cardSampling';
 import type { DownloadProgress } from './llmBackend';
 
 // ────────────────────────────────────────────
+// Compiler error types
+// ────────────────────────────────────────────
+
+export type CompilerErrorCategory =
+  | 'model_download'   // Model download/load failed
+  | 'model_output'     // LLM produced invalid output (JSON parse failure)
+  | 'validation'       // Generated code failed AST security validation
+  | 'stress_test'      // Generated code throws or returns non-boolean
+  | 'unknown';         // Uncategorized error
+
+export class CompilerError extends Error {
+  category: CompilerErrorCategory;
+  rawOutput?: string;
+
+  constructor(category: CompilerErrorCategory, message: string, rawOutput?: string) {
+    super(message);
+    this.name = 'CompilerError';
+    this.category = category;
+    this.rawOutput = rawOutput;
+  }
+}
+
+// ────────────────────────────────────────────
 // Types
 // ────────────────────────────────────────────
 
@@ -358,12 +381,22 @@ function validateAndCreateFunction(functionBody: string): (lastCard: Card, newCa
 }
 
 // ────────────────────────────────────────────
+// Configurable backend URL
+// ────────────────────────────────────────────
+
+function getCompilerBaseUrl(): string {
+  // VITE_COMPILER_URL env var for production builds pointing to standalone server.
+  // Falls back to relative URL for Vite dev server.
+  return import.meta.env.VITE_COMPILER_URL || '';
+}
+
+// ────────────────────────────────────────────
 // Availability check (cloud endpoint)
 // ────────────────────────────────────────────
 
 export async function isCloudCompilerAvailable(): Promise<boolean> {
   try {
-    const res = await fetch('/api/compile-rule/health', {
+    const res = await fetch(`${getCompilerBaseUrl()}/api/compile-rule/health`, {
       method: 'GET',
       signal: AbortSignal.timeout(3000),
     });
@@ -383,7 +416,7 @@ async function compileRuleCloud(
 ): Promise<CompiledRule> {
   // Server kills the claude CLI subprocess at 60s (CLAUDE_CLI_TIMEOUT_MS in
   // ruleCompilerPlugin.ts). Allow 5s extra for HTTP round-trip overhead.
-  const res = await fetch('/api/compile-rule', {
+  const res = await fetch(`${getCompilerBaseUrl()}/api/compile-rule`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ruleText, clarifications }),
@@ -416,51 +449,135 @@ interface LocalCompileResult {
   ambiguities?: string[];
 }
 
+const MAX_RETRIES = 3;
+
 export async function compileRuleLocal(
   ruleText: string,
   clarifications?: string,
   opts: LocalCompileOptions = {}
 ): Promise<CompiledRule> {
+  console.log(`[ruleCompiler] Starting local compile for: "${ruleText.slice(0, 80)}"`);
+
   // Lazy-load the LLM-specific modules so @huggingface/transformers is never
   // imported in tests or in the cloud-backend code path.
-  const [{ getLLMBackend, extractJsonFromOutput }, { buildLocalCompilerPrompt }, { generateExamples }] =
+  const [{ getLLMBackend, extractJsonFromOutput }, { buildLocalCompilerPrompt, buildRetryPrompt }, { generateExamples }] =
     await Promise.all([
       import('./llmBackend'),
       import('./compilerPromptLocal'),
       import('./generateExamples'),
     ]);
 
-  const backend = await getLLMBackend({
-    onProgress: opts.onProgress,
-    preferWebGPU: opts.preferWebGPU ?? false,
-    signal: opts.signal,
-  });
+  let backend;
+  try {
+    backend = await getLLMBackend({
+      onProgress: opts.onProgress,
+      preferWebGPU: opts.preferWebGPU ?? false,
+      signal: opts.signal,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[ruleCompiler] Backend failed to load:', msg);
+    throw new CompilerError('model_download', `Model failed to load: ${msg}`);
+  }
+  console.log('[ruleCompiler] Backend ready');
 
-  const prompt = buildLocalCompilerPrompt(ruleText, clarifications);
+  let lastError: CompilerError | null = null;
 
-  opts.onProgress?.({ progress: -1, status: 'Generating rule function…', total: 0, loaded: 0 });
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    // Don't retry if user cancelled
+    if (opts.signal?.aborted) {
+      throw opts.signal.reason ?? new DOMException('Compilation cancelled', 'AbortError');
+    }
 
-  const rawOutput = await backend.generate(prompt);
+    const prompt = attempt === 0
+      ? buildLocalCompilerPrompt(ruleText, clarifications)
+      : buildRetryPrompt(ruleText, lastError?.message ?? 'Unknown error', clarifications);
 
-  const parsed = extractJsonFromOutput(rawOutput) as LocalCompileResult | null;
+    opts.onProgress?.({
+      progress: -1,
+      status: attempt === 0 ? 'Generating rule function…' : `Retrying (attempt ${attempt + 1}/${MAX_RETRIES})…`,
+      total: 0, loaded: 0,
+    });
 
-  if (!parsed || typeof parsed.functionBody !== 'string') {
-    throw new Error(
-      `Local LLM did not return valid JSON with functionBody.\nRaw output:\n${rawOutput.slice(0, 500)}`
-    );
+    try {
+      let rawOutput: string;
+      try {
+        rawOutput = await backend.generate(prompt);
+      } catch (err) {
+        // Don't retry AbortError
+        if (err instanceof Error && err.name === 'AbortError') throw err;
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('[ruleCompiler] Generation failed:', msg);
+        throw new CompilerError('model_output', `Model generation failed: ${msg}`);
+      }
+      console.log(`[ruleCompiler] Attempt ${attempt + 1}: raw output (${rawOutput.length} chars): "${rawOutput.slice(0, 300)}"`);
+
+      const parsed = extractJsonFromOutput(rawOutput) as LocalCompileResult | null;
+
+      if (!parsed || typeof parsed.functionBody !== 'string') {
+        console.error(`[ruleCompiler] Attempt ${attempt + 1}: JSON extraction failed`);
+        throw new CompilerError(
+          'model_output',
+          'AI produced output that could not be parsed as a valid rule function.',
+          rawOutput.slice(0, 500),
+        );
+      }
+      console.log(`[ruleCompiler] Attempt ${attempt + 1}: JSON extraction success`);
+
+      const validation = validateFunctionBody(parsed.functionBody);
+      if (!validation.valid) {
+        console.error(`[ruleCompiler] Attempt ${attempt + 1}: AST validation failed: ${validation.error}`);
+        throw new CompilerError(
+          'validation',
+          `Generated code failed security check: ${validation.error}`,
+          parsed.functionBody,
+        );
+      }
+      console.log(`[ruleCompiler] Attempt ${attempt + 1}: AST validation passed`);
+
+      const fn = createSandboxedFunction(parsed.functionBody);
+
+      const stable = stressTestFunction(fn);
+      if (!stable) {
+        console.error(`[ruleCompiler] Attempt ${attempt + 1}: stress test failed`);
+        throw new CompilerError(
+          'stress_test',
+          'Generated code is unstable — it throws errors or returns non-boolean values on random card pairs.',
+          parsed.functionBody,
+        );
+      }
+      console.log(`[ruleCompiler] Attempt ${attempt + 1}: stress test passed`);
+
+      // Success!
+      opts.onProgress?.({ progress: -1, status: 'Generating examples…', total: 0, loaded: 0 });
+      const examples = generateExamples(fn, 10);
+
+      console.log(`[ruleCompiler] Compile complete (attempt ${attempt + 1})`);
+      return {
+        fn,
+        examples,
+        ambiguities: parsed.ambiguities ?? [],
+        functionBody: parsed.functionBody,
+      };
+
+    } catch (err) {
+      // Don't retry AbortError
+      if ((err instanceof Error && err.name === 'AbortError') || opts.signal?.aborted) throw err;
+
+      lastError = err instanceof CompilerError
+        ? err
+        : new CompilerError('unknown', err instanceof Error ? err.message : String(err));
+
+      console.warn(`[ruleCompiler] Attempt ${attempt + 1}/${MAX_RETRIES} failed: ${lastError.message}`);
+
+      if (attempt === MAX_RETRIES - 1) {
+        throw lastError;
+      }
+    }
   }
 
-  const fn = validateAndCreateFunction(parsed.functionBody);
-
-  opts.onProgress?.({ progress: -1, status: 'Generating examples…', total: 0, loaded: 0 });
-  const examples = generateExamples(fn, 10);
-
-  return {
-    fn,
-    examples,
-    ambiguities: parsed.ambiguities ?? [],
-    functionBody: parsed.functionBody,
-  };
+  // Unreachable, but satisfies TypeScript
+  throw lastError ?? new CompilerError('unknown', 'All compilation attempts failed');
 }
 
 // ────────────────────────────────────────────

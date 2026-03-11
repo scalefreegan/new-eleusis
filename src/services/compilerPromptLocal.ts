@@ -58,3 +58,35 @@ Rule "new card rank is a Fibonacci number":
 
 Now output ONLY the JSON object for: "${ruleText}"`;
 }
+
+/** Build a retry prompt that includes the previous error for feedback */
+export function buildRetryPrompt(
+  ruleText: string,
+  previousError: string,
+  clarifications?: string,
+): string {
+  return `Your previous attempt to compile this rule failed.
+
+Error: ${previousError}
+
+Original rule: "${ruleText}"
+${clarifications ? `\nClarifications: ${clarifications}` : ''}
+
+## Card Type
+interface Card { rank: 'A'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'|'10'|'J'|'Q'|'K'; suit: 'hearts'|'diamonds'|'clubs'|'spades'; id: string; }
+
+## Helpers
+helpers.getRankValue(rank): number  // A=1, 2=2, ..., 10=10, J=11, Q=12, K=13
+helpers.getSuitColor(suit): 'red'|'black'
+helpers.isFaceCard(rank): boolean  // J, Q, K
+helpers.isEvenRank(rank): boolean  // 2,4,6,8,10,Q
+
+Please try again. Output ONLY valid JSON with this exact structure:
+{"functionBody": "<JS code ending with return <boolean>;>", "ambiguities": []}
+
+Remember:
+- Use ONLY: lastCard, newCard, helpers
+- Must end with return <boolean expression>;
+- NO forbidden globals (eval, fetch, window, document, etc.)
+- Output raw JSON, no markdown fences`;
+}

@@ -13,19 +13,26 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { GlassPanel } from './GlassPanel';
 import { RuleExampleCard } from './RuleExampleCard';
+import { RuleTemplateSelector } from './RuleTemplateSelector';
+import type { RuleTemplate } from './RuleTemplateSelector';
 import {
   compileRule,
   testCompiledFunction,
   getPreferredBackend,
   setPreferredBackend,
   isCloudCompilerAvailable,
+  validateFunctionBody,
+  createSandboxedFunction,
+  stressTestFunction,
+  CompilerError,
 } from '../services/ruleCompiler';
-import { isWebGPUAvailable } from '../services/llmBackend';
-import type { CardExample, CompiledRule, CompilerBackend } from '../services/ruleCompiler';
+import { generateExamples } from '../services/generateExamples';
+import { isWebGPUAvailable, isModelCached } from '../services/llmBackend';
+import type { CardExample, CompiledRule, CompilerBackend, CompilerErrorCategory } from '../services/ruleCompiler';
 import type { DownloadProgress } from '../services/llmBackend';
 import type { Card } from '../engine/types';
 
-type Step = 'backendSelect' | 'downloading' | 'compiling' | 'ambiguity' | 'confirmation' | 'ready' | 'error';
+type Step = 'backendSelect' | 'templateSelect' | 'downloading' | 'compiling' | 'ambiguity' | 'confirmation' | 'ready' | 'error';
 
 interface RuleCompilerModalProps {
   ruleText: string;
@@ -40,6 +47,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
 }) => {
   const [step, setStep] = useState<Step>('backendSelect');
   const [errorMessage, setErrorMessage] = useState('');
+  const [errorCategory, setErrorCategory] = useState<CompilerErrorCategory | null>(null);
   const [compiled, setCompiled] = useState<CompiledRule | null>(null);
   const [examples, setExamples] = useState<CardExample[]>([]);
   const [clarifications, setClarifications] = useState('');
@@ -49,10 +57,12 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [preferWebGPU, setPreferWebGPU] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const [modelCached, setModelCached] = useState<boolean | null>(null);
 
-  // Probe cloud availability once on mount
+  // Probe cloud availability and model cache status once on mount
   useEffect(() => {
     isCloudCompilerAvailable().then(setCloudAvailable);
+    isModelCached().then(setModelCached);
   }, []);
 
   // Abort any in-flight download on unmount
@@ -102,6 +112,7 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
       }
       const msg = err instanceof Error ? err.message : String(err);
       setErrorMessage(msg);
+      setErrorCategory(err instanceof CompilerError ? err.category : null);
       setStep('error');
     }
   }, [ruleText, handleProgress, preferWebGPU]);
@@ -114,6 +125,47 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
     setBackend(chosen);
     setPreferredBackend(chosen);
     void doCompile(chosen);
+  };
+
+  const handleSelectTemplate = (template: RuleTemplate) => {
+    const validation = validateFunctionBody(template.functionBody);
+    if (!validation.valid) {
+      setErrorMessage(`Template "${template.name}" failed validation: ${validation.error}`);
+      setErrorCategory('validation');
+      setStep('error');
+      return;
+    }
+
+    try {
+      const fn = createSandboxedFunction(template.functionBody);
+
+      if (!stressTestFunction(fn)) {
+        setErrorMessage(`Template "${template.name}" failed stability test`);
+        setErrorCategory('stress_test');
+        setStep('error');
+        return;
+      }
+
+      const exs = generateExamples(fn, 10);
+      const testResult = testCompiledFunction(fn, exs);
+
+      const result: CompiledRule = {
+        fn,
+        examples: exs,
+        ambiguities: [],
+        functionBody: template.functionBody,
+      };
+
+      setCompiled(result);
+      setExamples(exs);
+      setTestResults(testResult);
+      setStep('confirmation');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setErrorMessage(`Template "${template.name}" failed: ${msg}`);
+      setErrorCategory('validation');
+      setStep('error');
+    }
   };
 
   const handleAmbiguityContinue = () => {
@@ -218,8 +270,10 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
                 Qwen2.5-Coder 1.5B · runs in browser · works offline &amp; on Android
                 {webGPUAvailable && <span style={{ color: '#88ff88' }}> · WebGPU available (fast)</span>}
               </div>
-              <div style={{ fontSize: '0.8rem', color: '#ffaa44', marginTop: '0.3rem' }}>
-                ~900 MB download on first use (cached)
+              <div style={{ fontSize: '0.8rem', color: modelCached ? '#88ff88' : '#ffaa44', marginTop: '0.3rem' }}>
+                {modelCached === true
+                  ? '✓ Model cached — instant load'
+                  : '~900 MB download on first use (cached after)'}
               </div>
             </button>
 
@@ -271,10 +325,37 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
               </div>
             </button>
 
+            {/* Template option */}
+            <button
+              onClick={() => setStep('templateSelect')}
+              style={{
+                ...backendBtnStyle('#2a2a1a'),
+                border: '1px solid rgba(255,255,255,0.2)',
+                width: '100%',
+                marginBottom: '0.75rem',
+                textAlign: 'left',
+              }}
+            >
+              <div style={{ fontSize: '1.0rem', color: 'var(--text-light)', marginBottom: '0.4rem' }}>
+                ▦ Rule Templates (instant)
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
+                Pick from 18 pre-built rules · no download · works offline
+              </div>
+            </button>
+
             <button onClick={onSkip} style={btnStyle('rgba(255,255,255,0.08)')}>
               SKIP (JUDGE MANUALLY)
             </button>
           </div>
+        )}
+
+        {/* Step: Template selection */}
+        {step === 'templateSelect' && (
+          <RuleTemplateSelector
+            onSelect={handleSelectTemplate}
+            onBack={() => setStep('backendSelect')}
+          />
         )}
 
         {/* Step: Downloading model */}
@@ -474,8 +555,12 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
         {/* Step: Error */}
         {step === 'error' && (
           <div>
-            <div style={{ fontSize: '1.1rem', color: '#ff4444', marginBottom: '1rem' }}>
-              ✗ Compilation failed
+            <div style={{ fontSize: '1.1rem', color: '#ff4444', marginBottom: '0.5rem' }}>
+              ✗ {errorCategory === 'model_download' ? 'Model Download Failed'
+                : errorCategory === 'model_output' ? 'AI Produced Invalid Output'
+                : errorCategory === 'validation' ? 'Generated Code Failed Security Check'
+                : errorCategory === 'stress_test' ? 'Generated Code Is Unstable'
+                : 'Compilation Failed'}
             </div>
             <div
               style={{
@@ -485,7 +570,6 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
                 borderRadius: '6px',
                 fontSize: '0.8rem',
                 color: 'var(--text-dim)',
-                fontFamily: 'monospace',
                 lineHeight: 1.5,
                 marginBottom: '1rem',
                 wordBreak: 'break-all',
@@ -493,9 +577,12 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
             >
               {errorMessage}
             </div>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button onClick={() => void doCompile(backend, clarifications)} style={btnStyle('var(--accent-purple)')}>
                 RETRY
+              </button>
+              <button onClick={() => setStep('templateSelect')} style={btnStyle('rgba(255,200,0,0.15)')}>
+                TRY A TEMPLATE
               </button>
               <button onClick={() => setStep('backendSelect')} style={btnStyle('rgba(100,100,255,0.2)')}>
                 CHANGE BACKEND

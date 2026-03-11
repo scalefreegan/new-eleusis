@@ -5,6 +5,51 @@
  * Shared by ruleCompilerPlugin.ts (server) and llmBackend.ts (client).
  */
 
+/** Attempt lightweight repairs on malformed JSON text */
+export function repairJson(text: string): string {
+  let repaired = text;
+
+  // Strip markdown fences if present
+  repaired = repaired.replace(/^```(?:json)?\s*\n?/m, '').replace(/\n?```\s*$/m, '');
+
+  // Convert single-quoted JSON to double-quoted (common LLM output pattern)
+  // Only apply when text looks like single-quoted JSON: starts with {' or ['
+  if (/^\s*[\[{]\s*'/.test(repaired)) {
+    // Replace single quotes acting as JSON delimiters, preserving apostrophes
+    // Strategy: replace ' at JSON structural positions (key/value boundaries)
+    repaired = repaired
+      .replace(/'/g, '"');
+  }
+
+  // Remove trailing commas before } or ]
+  repaired = repaired.replace(/,\s*([\]}])/g, '$1');
+
+  // Handle truncated output: close unbalanced braces/brackets
+  let openBraces = 0, openBrackets = 0;
+  let inStr = false, escape = false;
+  for (const ch of repaired) {
+    if (escape) { escape = false; continue; }
+    if (inStr) {
+      if (ch === '\\') escape = true;
+      else if (ch === '"') inStr = false;
+    } else {
+      if (ch === '"') inStr = true;
+      else if (ch === '{') openBraces++;
+      else if (ch === '}') openBraces--;
+      else if (ch === '[') openBrackets++;
+      else if (ch === ']') openBrackets--;
+    }
+  }
+  if (inStr) repaired += '"';
+  while (openBrackets > 0) { repaired += ']'; openBrackets--; }
+  while (openBraces > 0) { repaired += '}'; openBraces--; }
+
+  // Clean up trailing commas introduced by brace/bracket closing
+  repaired = repaired.replace(/,\s*([\]}])/g, '$1');
+
+  return repaired;
+}
+
 /** Extract the first JSON object from a string (strips markdown fences, preamble) */
 export function extractJson(text: string): unknown {
   // Direct parse
@@ -45,6 +90,10 @@ export function extractJson(text: string): unknown {
       }
     }
   }
+
+  // Before giving up, try repairing
+  const repaired = repairJson(text);
+  try { return JSON.parse(repaired); } catch { /* fall through */ }
 
   return null;
 }

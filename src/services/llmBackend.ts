@@ -76,6 +76,7 @@ export function abortable<T>(promise: Promise<T>, signal?: AbortSignal): Promise
 
 let _singleton: LLMBackend | null = null;
 let _initPromise: Promise<LLMBackend> | null = null;
+let _disposeGeneration = 0;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Capability detection
@@ -87,6 +88,31 @@ export function isWebGPUAvailable(): boolean {
   } catch {
     return false;
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Retry / error categorization for model downloads
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MAX_DOWNLOAD_RETRIES = 3;
+const BACKOFF_BASE_MS = 1000;
+
+function categorizeDownloadError(err: Error): Error {
+  const msg = err.message.toLowerCase();
+
+  if (msg.includes('quota') || msg.includes('storage')) {
+    return new Error('Not enough storage space (~900MB required). Free up browser storage and try again.');
+  }
+  if (msg.includes('cors') || msg.includes('blocked')) {
+    return new Error('Download blocked by browser security policy (CORS). Try a different browser or network.');
+  }
+  if (msg.includes('timeout') || msg.includes('timed out')) {
+    return new Error('Download timed out. Try again on a faster connection.');
+  }
+  if (msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('network')) {
+    return new Error('Download failed: check your internet connection and try again.');
+  }
+  return new Error(`Model download failed: ${err.message}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -102,13 +128,6 @@ async function createTransformersBackend(
   env.allowLocalModels = true;
   env.allowRemoteModels = true;
 
-  opts.onProgress?.({
-    progress: -1,
-    status: 'Loading model (this may take a minute on first run)…',
-    total: 0,
-    loaded: 0,
-  });
-
   type ProgressEvent = {
     status: string;
     name?: string;
@@ -118,64 +137,133 @@ async function createTransformersBackend(
     total?: number;
   };
 
-  const pipe = await pipeline('text-generation', TRANSFORMERS_MODEL, {
-    dtype: DTYPE,
-    progress_callback: (event: ProgressEvent) => {
-      if (!opts.onProgress) return;
-      const loaded = event.loaded ?? 0;
-      const total = event.total ?? 0;
-      const progressFraction = total > 0 ? loaded / total : -1;
-      const label = event.file ?? event.name ?? event.status ?? '';
-      const loadedMB = (loaded / 1_048_576).toFixed(1);
-      const totalMB = total > 0 ? `/ ${(total / 1_048_576).toFixed(1)} MB` : '';
-      opts.onProgress({
-        progress: progressFraction,
-        status: `Downloading ${label} ${loadedMB} MB ${totalMB}`.trim(),
-        total,
-        loaded,
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < MAX_DOWNLOAD_RETRIES; attempt++) {
+    // Don't retry if user cancelled
+    if (opts.signal?.aborted) {
+      throw opts.signal.reason ?? new DOMException('Download cancelled', 'AbortError');
+    }
+
+    if (attempt > 0) {
+      const delay = BACKOFF_BASE_MS * Math.pow(2, attempt - 1);
+      console.log(`[llmBackend] Retry ${attempt + 1}/${MAX_DOWNLOAD_RETRIES} after ${delay}ms`);
+      opts.onProgress?.({
+        progress: -1,
+        status: `Download failed, retrying in ${delay / 1000}s…`,
+        total: 0,
+        loaded: 0,
       });
-    },
-  });
+      await new Promise<void>((resolve, reject) => {
+        const onAbort = () => {
+          clearTimeout(timer);
+          reject(opts.signal!.reason ?? new DOMException('Download cancelled', 'AbortError'));
+        };
+        const timer = setTimeout(() => {
+          if (opts.signal) opts.signal.removeEventListener('abort', onAbort);
+          resolve();
+        }, delay);
+        if (opts.signal) {
+          if (opts.signal.aborted) { clearTimeout(timer); reject(opts.signal.reason ?? new DOMException('Download cancelled', 'AbortError')); return; }
+          opts.signal.addEventListener('abort', onAbort, { once: true });
+        }
+      });
+    }
 
-  opts.onProgress?.({ progress: 1, status: 'Model ready', total: 0, loaded: 0 });
+    opts.onProgress?.({
+      progress: -1,
+      status: attempt === 0
+        ? 'Loading model (this may take a minute on first run)…'
+        : `Retrying model download (attempt ${attempt + 1}/${MAX_DOWNLOAD_RETRIES})…`,
+      total: 0,
+      loaded: 0,
+    });
 
-  return {
-    async generate(prompt: string): Promise<string> {
-      const messages = [
-        {
-          role: 'system' as const,
-          content:
-            'You are a JavaScript code generator for the card game New Eleusis. Always respond with valid JSON only, no markdown fences.',
+    const loadStart = performance.now();
+
+    try {
+      const pipe = await pipeline('text-generation', TRANSFORMERS_MODEL, {
+        dtype: DTYPE,
+        progress_callback: (event: ProgressEvent) => {
+          if (!opts.onProgress) return;
+          const loaded = event.loaded ?? 0;
+          const total = event.total ?? 0;
+          const progressFraction = total > 0 ? loaded / total : -1;
+          const label = event.file ?? event.name ?? event.status ?? '';
+          const loadedMB = (loaded / 1_048_576).toFixed(1);
+          const totalMB = total > 0 ? `/ ${(total / 1_048_576).toFixed(1)} MB` : '';
+          opts.onProgress({
+            progress: progressFraction,
+            status: `Downloading ${label} ${loadedMB} MB ${totalMB}`.trim(),
+            total,
+            loaded,
+          });
         },
-        { role: 'user' as const, content: prompt },
-      ];
+      });
 
-      type GenerateOutput =
-        | { generated_text: string }
-        | { generated_text: Array<{ role: string; content: string }> };
+      const elapsed = ((performance.now() - loadStart) / 1000).toFixed(1);
+      console.log(`[llmBackend] Model loaded in ${elapsed}s`);
+      opts.onProgress?.({ progress: 1, status: 'Model ready', total: 0, loaded: 0 });
 
-      const output = await pipe(messages, {
-        max_new_tokens: MAX_NEW_TOKENS,
-        temperature: 0.1,
-        do_sample: false,
-      }) as GenerateOutput[] | GenerateOutput;
+      return {
+        async generate(prompt: string): Promise<string> {
+          const messages = [
+            {
+              role: 'system' as const,
+              content:
+                'You are a JavaScript code generator for the card game New Eleusis. Always respond with valid JSON only, no markdown fences.',
+            },
+            { role: 'user' as const, content: prompt },
+          ];
 
-      // Transformers.js returns an array; last message is the assistant response
-      const first = Array.isArray(output) ? output[0] : output;
-      const generated = first.generated_text;
+          type GenerateOutput =
+            | { generated_text: string }
+            | { generated_text: Array<{ role: string; content: string }> };
 
-      if (Array.isArray(generated)) {
-        // Chat completion format: array of {role, content}
-        const assistant = [...generated].reverse().find((m) => m.role === 'assistant');
-        return assistant?.content ?? '';
+          const output = await pipe(messages, {
+            max_new_tokens: MAX_NEW_TOKENS,
+            temperature: 0.1,
+            do_sample: false,
+          }) as GenerateOutput[] | GenerateOutput;
+
+          // Transformers.js returns an array; last message is the assistant response
+          const first = Array.isArray(output) ? output[0] : output;
+          const generated = first.generated_text;
+
+          let result: string;
+          if (Array.isArray(generated)) {
+            // Chat completion format: array of {role, content}
+            const assistant = [...generated].reverse().find((m) => m.role === 'assistant');
+            result = assistant?.content ?? '';
+          } else {
+            result = String(generated);
+          }
+          console.log(`[llmBackend] Generated ${result.length} chars`);
+          return result;
+        },
+
+        dispose() {
+          // Transformers.js pipeline doesn't have an explicit dispose
+        },
+      };
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      const elapsed = ((performance.now() - loadStart) / 1000).toFixed(1);
+      console.error(`[llmBackend] Download attempt ${attempt + 1} failed after ${elapsed}s:`, lastError.message);
+
+      // Don't retry abort errors
+      if (lastError.name === 'AbortError' || opts.signal?.aborted) {
+        throw lastError;
       }
-      return String(generated);
-    },
 
-    dispose() {
-      // Transformers.js pipeline doesn't have an explicit dispose
-    },
-  };
+      if (attempt === MAX_DOWNLOAD_RETRIES - 1) {
+        throw categorizeDownloadError(lastError);
+      }
+    }
+  }
+
+  // Unreachable, but satisfies TypeScript
+  throw lastError;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -202,10 +290,16 @@ export async function getLLMBackend(opts: LLMBackendOptions = {}): Promise<LLMBa
   // TODO: WebLLM (WebGPU) acceleration — install @mlc-ai/web-llm and wire up
   // createWebLLMBackend() here when opts.preferWebGPU && isWebGPUAvailable().
 
+  const generation = _disposeGeneration;
   _initPromise = abortable(createTransformersBackend(opts), opts.signal).then(
     (backend) => {
-      _singleton = backend;
       _initPromise = null;
+      if (_disposeGeneration !== generation) {
+        // dispose() was called while we were loading — discard result
+        backend.dispose();
+        throw new Error('Backend disposed during initialization');
+      }
+      _singleton = backend;
       return backend;
     },
     (error) => {
@@ -222,6 +316,7 @@ export async function getLLMBackend(opts: LLMBackendOptions = {}): Promise<LLMBa
  * Call this if you want to free WASM memory.
  */
 export function disposeLLMBackend(): void {
+  _disposeGeneration++;
   _initPromise = null;
   if (_singleton) {
     _singleton.dispose();
@@ -233,6 +328,23 @@ export function disposeLLMBackend(): void {
 export function _resetForTesting(): void {
   _singleton = null;
   _initPromise = null;
+  _disposeGeneration = 0;
+}
+
+/**
+ * Best-effort check if the model files are already in the browser cache.
+ * Returns true if cached, false if not, null if detection is unavailable.
+ */
+export async function isModelCached(): Promise<boolean | null> {
+  try {
+    if (typeof caches === 'undefined') return null;
+    const cache = await caches.open('transformers-cache');
+    const keys = await cache.keys();
+    const modelSlug = TRANSFORMERS_MODEL.toLowerCase();
+    return keys.some(req => req.url.toLowerCase().includes(modelSlug));
+  } catch {
+    return null;
+  }
 }
 
 /** Re-export extractJson from the shared module for backward compatibility */

@@ -13,7 +13,9 @@
     "cap:sync": "npm run build && npx cap sync android",
     "cap:open": "npx cap open android",
     "cap:run": "npx cap run android",
-    "test:rules": "vitest run tests/services/ruleBankValidation.test.ts"
+    "test:rules": "vitest run tests/services/ruleBankValidation.test.ts",
+    "download-model": "node scripts/download-model.mjs",
+    "server": "npx tsx server/standalone.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.0.1",

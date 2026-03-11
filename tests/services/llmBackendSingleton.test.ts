@@ -48,18 +48,18 @@ describe('getLLMBackend singleton', () => {
   });
 
   it('retries after a failed init', async () => {
-    // First call: pipeline rejects
-    mockPipeline.mockRejectedValueOnce(new Error('model download failed'));
+    // First getLLMBackend call: all 3 retry attempts fail
+    mockPipeline.mockRejectedValue(new Error('model download failed'));
 
-    await expect(getLLMBackend()).rejects.toThrow('model download failed');
+    await expect(getLLMBackend()).rejects.toThrow('Model download failed');
 
-    // Second call: pipeline succeeds — should NOT return the cached rejection
+    // Reset — second getLLMBackend call: pipeline succeeds
+    mockPipeline.mockReset();
     const fakePipe = vi.fn().mockResolvedValue([{ generated_text: 'ok' }]);
     mockPipeline.mockResolvedValue(fakePipe);
 
     const backend = await getLLMBackend();
     expect(backend).toBeDefined();
-    expect(mockPipeline).toHaveBeenCalledTimes(2);
   });
 
   it('deduplicates concurrent calls', async () => {
@@ -80,15 +80,17 @@ describe('getLLMBackend singleton', () => {
 
     expect(results[0].status).toBe('rejected');
     expect(results[1].status).toBe('rejected');
-    expect(mockPipeline).toHaveBeenCalledTimes(1);
+    // Both calls share the same init promise; the retry loop calls pipeline 3 times
+    expect(mockPipeline).toHaveBeenCalledTimes(3);
   });
 
   it('retries after concurrent failure', async () => {
-    // First round: fail
-    mockPipeline.mockRejectedValueOnce(new Error('boom'));
+    // First round: all retry attempts fail
+    mockPipeline.mockRejectedValue(new Error('boom'));
     await Promise.allSettled([getLLMBackend(), getLLMBackend()]);
 
     // Second round: succeed
+    mockPipeline.mockReset();
     const fakePipe = vi.fn().mockResolvedValue([{ generated_text: 'ok' }]);
     mockPipeline.mockResolvedValue(fakePipe);
 
@@ -117,5 +119,37 @@ describe('getLLMBackend singleton', () => {
 
     expect(first).not.toBe(second);
     expect(mockPipeline).toHaveBeenCalledTimes(2);
+  });
+
+  it('disposeLLMBackend during active init discards the in-flight result', async () => {
+    let resolveInit!: (v: unknown) => void;
+    const pipelineCalled = new Promise<void>(done => {
+      mockPipeline.mockImplementation(() => new Promise(r => {
+        resolveInit = r;
+        done();
+      }));
+    });
+
+    const promise = getLLMBackend();
+
+    // Wait for pipeline() to actually be called (after the async import)
+    await pipelineCalled;
+
+    disposeLLMBackend(); // dispose while init is in-flight
+
+    const fakePipe = vi.fn().mockResolvedValue([{ generated_text: 'ok' }]);
+    resolveInit(fakePipe);
+
+    // The in-flight promise should reject because dispose invalidated it
+    await expect(promise).rejects.toThrow('Backend disposed during initialization');
+
+    // A new call should create a fresh pipeline
+    mockPipeline.mockReset();
+    const freshPipe = vi.fn().mockResolvedValue([{ generated_text: 'ok' }]);
+    mockPipeline.mockResolvedValue(freshPipe);
+
+    const fresh = await getLLMBackend();
+    expect(fresh).toBeDefined();
+    expect(mockPipeline).toHaveBeenCalledTimes(1);
   });
 });
