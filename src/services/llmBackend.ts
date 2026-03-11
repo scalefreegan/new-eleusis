@@ -173,18 +173,31 @@ async function createTransformersBackend(
     opts.onProgress?.({
       progress: -1,
       status: attempt === 0
-        ? 'Loading model (this may take a minute on first run)…'
+        ? 'Checking model cache…'
         : `Retrying model download (attempt ${attempt + 1}/${MAX_DOWNLOAD_RETRIES})…`,
       total: 0,
       loaded: 0,
     });
 
     const loadStart = performance.now();
+    let progressFired = false;
+    const heartbeat = setInterval(() => {
+      if (!progressFired && opts.onProgress) {
+        const elapsed = ((performance.now() - loadStart) / 1000).toFixed(0);
+        opts.onProgress({
+          progress: -1,
+          status: `Loading model from cache… (${elapsed}s)`,
+          total: 0,
+          loaded: 0,
+        });
+      }
+    }, 2000);
 
     try {
       const pipe = await pipeline('text-generation', TRANSFORMERS_MODEL, {
         dtype: DTYPE,
         progress_callback: (event: ProgressEvent) => {
+          progressFired = true;
           if (!opts.onProgress) return;
           const loaded = event.loaded ?? 0;
           const total = event.total ?? 0;
@@ -201,12 +214,14 @@ async function createTransformersBackend(
         },
       });
 
+      clearInterval(heartbeat);
       const elapsed = ((performance.now() - loadStart) / 1000).toFixed(1);
       console.log(`[llmBackend] Model loaded in ${elapsed}s`);
       opts.onProgress?.({ progress: 1, status: 'Model ready', total: 0, loaded: 0 });
 
       return {
         async generate(prompt: string): Promise<string> {
+          const t0 = performance.now();
           const messages = [
             {
               role: 'system' as const,
@@ -238,7 +253,8 @@ async function createTransformersBackend(
           } else {
             result = String(generated);
           }
-          console.log(`[llmBackend] Generated ${result.length} chars`);
+          const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+          console.log(`[llmBackend] Generated ${result.length} chars in ${elapsed}s`);
           return result;
         },
 
@@ -247,6 +263,7 @@ async function createTransformersBackend(
         },
       };
     } catch (err) {
+      clearInterval(heartbeat);
       lastError = err instanceof Error ? err : new Error(String(err));
       const elapsed = ((performance.now() - loadStart) / 1000).toFixed(1);
       console.error(`[llmBackend] Download attempt ${attempt + 1} failed after ${elapsed}s:`, lastError.message);

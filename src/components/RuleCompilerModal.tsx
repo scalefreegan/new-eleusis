@@ -58,6 +58,8 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
   const [preferWebGPU, setPreferWebGPU] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const [modelCached, setModelCached] = useState<boolean | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const compileStartRef = useRef<number | null>(null);
 
   // Probe cloud availability and model cache status once on mount
   useEffect(() => {
@@ -70,10 +72,28 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
     return () => { abortRef.current?.abort(); };
   }, []);
 
+  // Live elapsed timer while downloading or compiling
+  useEffect(() => {
+    if (step !== 'downloading' && step !== 'compiling') {
+      compileStartRef.current = null;
+      return;
+    }
+    if (!compileStartRef.current) {
+      compileStartRef.current = Date.now();
+      setElapsedSeconds(0);
+    }
+    const interval = setInterval(() => {
+      if (compileStartRef.current) {
+        setElapsedSeconds(Math.floor((Date.now() - compileStartRef.current) / 1000));
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [step]);
+
   const handleProgress = useCallback((progress: DownloadProgress) => {
     setDownloadProgress(progress);
     // Switch from 'downloading' to 'compiling' once the model is ready or we start generating
-    if (progress.status.toLowerCase().startsWith('generat')) {
+    if (progress.status.toLowerCase().startsWith('generat') || progress.status === 'Model ready') {
       setStep('compiling');
     } else {
       setStep(prev => prev === 'compiling' ? prev : 'downloading');
@@ -370,6 +390,9 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
                   {downloadProgress.status}
                 </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--accent-purple)', marginTop: '0.25rem' }}>
+                  ⏱ {formatElapsed(elapsedSeconds)}
+                </div>
                 {downloadProgress.progress >= 0 && (
                   <div
                     style={{
@@ -432,6 +455,9 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
                 {downloadProgress.status}
               </div>
             )}
+            <div style={{ fontSize: '0.8rem', color: 'var(--accent-purple)', marginTop: '0.5rem' }}>
+              ⏱ {formatElapsed(elapsedSeconds)}
+            </div>
           </div>
         )}
 
@@ -597,6 +623,13 @@ export const RuleCompilerModal: React.FC<RuleCompilerModalProps> = ({
     </div>
   );
 };
+
+function formatElapsed(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m ${s}s`;
+}
 
 function btnStyle(bg: string): React.CSSProperties {
   return {

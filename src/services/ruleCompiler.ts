@@ -414,22 +414,27 @@ async function compileRuleCloud(
   ruleText: string,
   clarifications?: string
 ): Promise<CompiledRule> {
-  // Server kills the claude CLI subprocess at 60s (CLAUDE_CLI_TIMEOUT_MS in
+  const t0 = performance.now();
+  // Server kills the claude CLI subprocess at 120s (CLAUDE_CLI_TIMEOUT_MS in
   // ruleCompilerPlugin.ts). Allow 5s extra for HTTP round-trip overhead.
   const res = await fetch(`${getCompilerBaseUrl()}/api/compile-rule`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ruleText, clarifications }),
-    signal: AbortSignal.timeout(65_000),
+    signal: AbortSignal.timeout(125_000),
   });
 
   if (!res.ok) {
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
     const err = await res.json().catch(() => ({ error: res.statusText })) as { error: string };
-    throw new Error(`Compile failed: ${err.error || res.statusText}`);
+    throw new Error(`Compile failed after ${elapsed}s: ${err.error || res.statusText}`);
   }
 
   const data = await res.json() as CompileResult;
   const fn = validateAndCreateFunction(data.functionBody);
+
+  const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+  console.log(`[ruleCompiler] Cloud compile complete in ${elapsed}s`);
 
   return {
     fn,
@@ -457,6 +462,7 @@ export async function compileRuleLocal(
   opts: LocalCompileOptions = {}
 ): Promise<CompiledRule> {
   console.log(`[ruleCompiler] Starting local compile for: "${ruleText.slice(0, 80)}"`);
+  const t0 = performance.now();
 
   // Lazy-load the LLM-specific modules so @huggingface/transformers is never
   // imported in tests or in the cloud-backend code path.
@@ -466,6 +472,8 @@ export async function compileRuleLocal(
       import('./compilerPromptLocal'),
       import('./generateExamples'),
     ]);
+
+  opts.onProgress?.({ progress: -1, status: 'Loading AI model…', total: 0, loaded: 0 });
 
   let backend;
   try {
@@ -479,7 +487,8 @@ export async function compileRuleLocal(
     console.error('[ruleCompiler] Backend failed to load:', msg);
     throw new CompilerError('model_download', `Model failed to load: ${msg}`);
   }
-  console.log('[ruleCompiler] Backend ready');
+  console.log(`[ruleCompiler] Backend ready in ${((performance.now() - t0) / 1000).toFixed(1)}s`);
+  opts.onProgress?.({ progress: -1, status: 'Model ready — preparing to generate…', total: 0, loaded: 0 });
 
   let lastError: CompilerError | null = null;
 
@@ -510,7 +519,7 @@ export async function compileRuleLocal(
         console.error('[ruleCompiler] Generation failed:', msg);
         throw new CompilerError('model_output', `Model generation failed: ${msg}`);
       }
-      console.log(`[ruleCompiler] Attempt ${attempt + 1}: raw output (${rawOutput.length} chars): "${rawOutput.slice(0, 300)}"`);
+      console.log(`[ruleCompiler] Attempt ${attempt + 1} at ${((performance.now() - t0) / 1000).toFixed(1)}s: raw output (${rawOutput.length} chars): "${rawOutput.slice(0, 300)}"`);
 
       const parsed = extractJsonFromOutput(rawOutput) as LocalCompileResult | null;
 
@@ -523,6 +532,7 @@ export async function compileRuleLocal(
         );
       }
       console.log(`[ruleCompiler] Attempt ${attempt + 1}: JSON extraction success`);
+      opts.onProgress?.({ progress: -1, status: 'Validating generated code…', total: 0, loaded: 0 });
 
       const validation = validateFunctionBody(parsed.functionBody);
       if (!validation.valid) {
@@ -534,6 +544,7 @@ export async function compileRuleLocal(
         );
       }
       console.log(`[ruleCompiler] Attempt ${attempt + 1}: AST validation passed`);
+      opts.onProgress?.({ progress: -1, status: 'Stress testing with random cards…', total: 0, loaded: 0 });
 
       const fn = createSandboxedFunction(parsed.functionBody);
 
@@ -552,7 +563,8 @@ export async function compileRuleLocal(
       opts.onProgress?.({ progress: -1, status: 'Generating examples…', total: 0, loaded: 0 });
       const examples = generateExamples(fn, 10);
 
-      console.log(`[ruleCompiler] Compile complete (attempt ${attempt + 1})`);
+      const totalElapsed = ((performance.now() - t0) / 1000).toFixed(1);
+      console.log(`[ruleCompiler] Compile complete in ${totalElapsed}s (attempt ${attempt + 1})`);
       return {
         fn,
         examples,

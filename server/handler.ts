@@ -36,7 +36,7 @@ function extractJson(text: string): unknown {
 }
 
 /** Timeout for the claude CLI subprocess (ms). Client timeout must be >= this. */
-export const CLAUDE_CLI_TIMEOUT_MS = 60_000;
+export const CLAUDE_CLI_TIMEOUT_MS = 120_000;
 
 /** Run `claude -p <prompt> --output-format json --max-turns 1` */
 export function runClaudeCli(prompt: string): Promise<string> {
@@ -120,6 +120,7 @@ export function sendJson(res: ServerResponse, status: number, data: unknown): vo
 
 /** Handle POST /api/compile-rule */
 export async function handleCompileRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const t0 = performance.now();
   try {
     const rawBody = await readRequestBody(req);
     const { ruleText, clarifications } = JSON.parse(rawBody) as CompileRequest;
@@ -132,7 +133,6 @@ export async function handleCompileRequest(req: IncomingMessage, res: ServerResp
     const prompt = buildCompilerPrompt(ruleText.trim(), clarifications);
 
     console.log('[rule-compiler] Invoking claude CLI for rule:', ruleText.slice(0, 80));
-
     const rawOutput = await runClaudeCli(prompt);
 
     // Parse the outer claude -p JSON wrapper: {"type":"result","result":"...","...":"..."}
@@ -158,12 +158,14 @@ export async function handleCompileRequest(req: IncomingMessage, res: ServerResp
       throw new Error('Compiled output missing examples array');
     }
 
-    console.log('[rule-compiler] Compiled successfully, examples:', compiled.examples.length);
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+    console.log(`[rule-compiler] Compiled successfully in ${elapsed}s, examples: ${compiled.examples.length}`);
 
     sendJson(res, 200, compiled);
   } catch (err) {
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
     const message = err instanceof Error ? err.message : String(err);
-    console.error('[rule-compiler] Error:', message);
+    console.error(`[rule-compiler] Error after ${elapsed}s: ${message}`);
     sendJson(res, 500, { error: message });
   }
 }
