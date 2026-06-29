@@ -4,7 +4,9 @@
 
 import { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
-import { MainLineBoard } from './MainLineBoard';
+import { ValidatedBoard } from './ValidatedBoard';
+import { RubbishBin } from './RubbishBin';
+import { RejectionsModal } from './RejectionsModal';
 import { PlayerHand } from './PlayerHand';
 import { GameOverScreen } from './GameOverScreen';
 import { ProphetPredictionPanel } from './ProphetPredictionPanel';
@@ -46,6 +48,7 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showCheat, setShowCheat] = useState(false);
+  const [rejectionsOpen, setRejectionsOpen] = useState(false);
 
   // Get the active local player (current player if human)
   const activePlayer = getActiveLocalPlayer();
@@ -268,9 +271,21 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
           </div>
         </div>
 
-        {/* MainLine Board Area - Maximized */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <MainLineBoard mainLine={state.mainLine} prophetMarkerIndex={state.prophetMarkerIndex} />
+        {/* Validated Board + Rubbish Bin */}
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'row',
+            gap: '1rem',
+            minHeight: 0,
+            alignItems: 'stretch',
+          }}
+        >
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <ValidatedBoard mainLine={state.mainLine} prophetMarkerIndex={state.prophetMarkerIndex} />
+          </div>
+          <RubbishBin mainLine={state.mainLine} onOpen={() => setRejectionsOpen(true)} />
         </div>
 
         {/* Cheat Mode - Show Rule */}
@@ -503,6 +518,15 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
       {/* Help and Settings Overlays */}
       {showHelp && <HelpOverlay onClose={() => setShowHelp(false)} />}
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+
+      {/* Rejected cards modal */}
+      <RejectionsModal
+        open={rejectionsOpen}
+        onClose={() => setRejectionsOpen(false)}
+        mainLine={state.mainLine}
+        prophetMarkerIndex={state.prophetMarkerIndex}
+        players={state.players}
+      />
     </div>
   );
 }

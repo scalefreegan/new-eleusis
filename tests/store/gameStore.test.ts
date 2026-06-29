@@ -188,3 +188,86 @@ describe('JUDGE_CARD after Prophet overthrow', () => {
     expect(stateAfter.currentPlayerIndex).not.toBe(players.indexOf(aiPlayer));
   });
 });
+
+describe('loadSavedGame validation', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.clear();
+    useGameStore.getState().resetGame();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const startValidGame = () => {
+    useGameStore.getState().startNewGame({
+      configs: [
+        { name: 'Dealer', type: 'ai', isGod: true },
+        { name: 'You', type: 'human', isGod: false },
+        { name: 'AI', type: 'ai', isGod: false },
+      ],
+    });
+  };
+
+  it('returns false when no save exists', () => {
+    expect(useGameStore.getState().loadSavedGame()).toBe(false);
+  });
+
+  it('returns false and discards a save missing players', () => {
+    localStorage.setItem(
+      'eleusis-game-save',
+      JSON.stringify({ state: { phase: 'playing', currentPlayerIndex: 0, mainLine: [], deck: [] } }),
+    );
+
+    const ok = useGameStore.getState().loadSavedGame();
+
+    expect(ok).toBe(false);
+    expect(useGameStore.getState().hasSavedGame).toBe(false);
+    // The corrupt save is gone — a second attempt has nothing loadable to offer.
+    expect(useGameStore.getState().loadSavedGame()).toBe(false);
+  });
+
+  it('returns false and discards a save with corrupt JSON', () => {
+    localStorage.setItem('eleusis-game-save', '{not valid json');
+
+    const ok = useGameStore.getState().loadSavedGame();
+
+    expect(ok).toBe(false);
+    // The unparseable blob has been replaced; it never loads again.
+    expect(useGameStore.getState().loadSavedGame()).toBe(false);
+  });
+
+  it('does not crash the player getters after an invalid load', () => {
+    startValidGame();
+    localStorage.setItem('eleusis-game-save', JSON.stringify({ state: { junk: true } }));
+
+    useGameStore.getState().loadSavedGame();
+
+    // The in-memory valid game is untouched and the getters stay safe.
+    expect(() => useGameStore.getState().getCurrentPlayer()).not.toThrow();
+    expect(() => useGameStore.getState().getActiveLocalPlayer()).not.toThrow();
+    expect(useGameStore.getState().state.players.length).toBeGreaterThan(0);
+  });
+
+  it('loads a structurally valid saved game and returns true', () => {
+    startValidGame();
+    const live = useGameStore.getState().state;
+    localStorage.setItem(
+      'eleusis-game-save',
+      JSON.stringify({
+        state: { ...live, godRuleFunction: undefined },
+        godRuleName: 'rule',
+        godFunctionBody: null,
+        lastGodIndex: 0,
+        trueProphetIndex: -1,
+      }),
+    );
+
+    const ok = useGameStore.getState().loadSavedGame();
+
+    expect(ok).toBe(true);
+    expect(useGameStore.getState().hasSavedGame).toBe(true);
+    expect(useGameStore.getState().state.players.length).toBeGreaterThan(0);
+  });
+});
