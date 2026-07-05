@@ -21,9 +21,10 @@ import { canDeclareProphet } from '../engine/validation';
 
 interface GameScreenProps {
   onReturnToMenu?: () => void;
+  onStartNextRound?: (configs: import('../engine/types').PlayerConfig[], ruleText?: string) => void;
 }
 
-export function GameScreen({ onReturnToMenu }: GameScreenProps) {
+export function GameScreen({ onReturnToMenu, onStartNextRound }: GameScreenProps) {
   const {
     state,
     selectedCards,
@@ -93,8 +94,30 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
     dispatch({ type: 'DECLARE_PROPHET', playerId: activePlayer.id });
   };
 
-  const handlePlayAgain = () => {
-    resetGame();
+  const getNextRoundConfigs = () => {
+    const trueProphetIndex = state.players.findIndex((player) => player.isProphet && !player.isGod);
+    const currentGodIndex = state.players.findIndex((player) => player.isGod);
+    const nextGodIndex = trueProphetIndex >= 0
+      ? trueProphetIndex
+      : currentGodIndex >= 0 ? (currentGodIndex + 1) % state.players.length : 0;
+
+    return state.players.map((player, index) => ({
+      name: player.name,
+      type: player.type,
+      isGod: index === nextGodIndex,
+    }));
+  };
+
+  const nextRoundConfigs = state.phase === 'game_over' ? getNextRoundConfigs() : [];
+  const nextGodConfig = nextRoundConfigs.find((config) => config.isGod);
+
+  const handlePlayAgain = (ruleText?: string) => {
+    const configs = nextRoundConfigs.length > 0 ? nextRoundConfigs : getNextRoundConfigs();
+    if (onStartNextRound) {
+      onStartNextRound(configs, ruleText);
+    } else {
+      resetGame();
+    }
   };
 
   const handleMainMenu = () => {
@@ -508,11 +531,13 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
 
       {/* Game Over Screen Overlay */}
       {state.phase === 'game_over' && (
-        <GameOverScreen
-          state={state}
-          onPlayAgain={handlePlayAgain}
-          onMainMenu={handleMainMenu}
-        />
+          <GameOverScreen
+            state={state}
+            onPlayAgain={handlePlayAgain}
+            onMainMenu={handleMainMenu}
+            nextGodName={nextGodConfig?.name}
+            nextGodType={nextGodConfig?.type}
+          />
       )}
 
       {/* Help and Settings Overlays */}
@@ -524,7 +549,6 @@ export function GameScreen({ onReturnToMenu }: GameScreenProps) {
         open={rejectionsOpen}
         onClose={() => setRejectionsOpen(false)}
         mainLine={state.mainLine}
-        prophetMarkerIndex={state.prophetMarkerIndex}
         players={state.players}
       />
     </div>

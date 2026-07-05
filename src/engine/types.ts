@@ -34,6 +34,7 @@ export interface PlayedCard extends Card {
   correct: boolean;
   playedBy: string;
   prophetPrediction?: ProphetPrediction;
+  suddenDeath?: 'prophet' | 'god';
   branches?: PlayedCard[];
 }
 

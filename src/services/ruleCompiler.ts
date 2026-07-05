@@ -132,16 +132,6 @@ const FORBIDDEN_PROPERTIES = new Set([
   '__proto__', 'prototype', 'constructor',
 ]);
 
-/** Allowed top-level identifiers (function params + injected helpers). */
-const ALLOWED_REFS = new Set([
-  'lastCard', 'newCard', 'helpers',
-  // Standard safe globals needed for card logic
-  'Math', 'Array', 'String', 'Number', 'Boolean', 'parseInt', 'parseFloat',
-  'isNaN', 'isFinite', 'undefined', 'NaN', 'Infinity', 'JSON',
-  'Object',
-  'true', 'false', 'null',
-]);
-
 export function validateFunctionBody(body: string): { valid: boolean; error?: string } {
   if (typeof body !== 'string' || body.trim().length === 0) {
     return { valid: false, error: 'Function body is empty' };
@@ -203,12 +193,12 @@ export function validateFunctionBody(body: string): { valid: boolean; error?: st
 
   acornWalk.simple(ast, {
     // Block `this` expressions
-    ThisExpression(_node: acorn.Node) {
+    ThisExpression() {
       if (!error) error = 'Forbidden: this expression';
     },
 
     // Block import expressions: import('...')
-    ImportExpression(_node: acorn.Node) {
+    ImportExpression() {
       if (!error) error = 'Forbidden: dynamic import()';
     },
 
@@ -306,7 +296,6 @@ export function validateFunctionBody(body: string): { valid: boolean; error?: st
 export function createSandboxedFunction(
   body: string
 ): (lastCard: Card, newCard: Card) => boolean {
-  // eslint-disable-next-line no-new-func
   const fn = new Function('lastCard', 'newCard', 'helpers', `'use strict';\n${body}`) as (
     lastCard: Card,
     newCard: Card,

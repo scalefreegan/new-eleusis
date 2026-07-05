@@ -7,7 +7,7 @@
 
 import { motion } from 'motion/react';
 import { GlassPanel } from './GlassPanel';
-import type { PlayedCard } from '../engine';
+import { countRejectedCards, type PlayedCard } from '../engine';
 
 interface RubbishBinProps {
   mainLine: PlayedCard[];
@@ -15,10 +15,7 @@ interface RubbishBinProps {
 }
 
 export function RubbishBin({ mainLine, onOpen }: RubbishBinProps) {
-  const rejectedCount = mainLine.reduce(
-    (sum, c) => sum + (c.branches?.length || 0),
-    0,
-  );
+  const rejectedCount = countRejectedCards(mainLine);
 
   const isEmpty = rejectedCount === 0;
   const stackDepth = Math.min(3, Math.max(1, rejectedCount));

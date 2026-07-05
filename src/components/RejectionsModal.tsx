@@ -8,14 +8,17 @@ import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GlassPanel } from './GlassPanel';
 import { Card } from './Card';
-import type { PlayedCard, Player } from '../engine';
+import {
+  getPlayedCardPositions,
+  type PlayedCard,
+  type Player,
+} from '../engine';
 import { getSuitSymbol } from '../utils/cardUtils';
 
 interface RejectionsModalProps {
   open: boolean;
   onClose: () => void;
   mainLine: PlayedCard[];
-  prophetMarkerIndex?: number;
   players: Player[];
 }
 
@@ -29,58 +32,22 @@ interface RejectionEntry {
 
 function buildEntries(
   mainLine: PlayedCard[],
-  prophetMarkerIndex: number | undefined,
 ): RejectionEntry[] {
-  // Flattened card count (validated + branches) up to and including the marker
-  // card. Mirrors `mainLine.slice(prophetMarkerIndex + 1)` in isSuddenDeath:
-  // everything at or before the marker is excluded from the "after marker" count.
-  let runningAtMarker = 0;
-  if (prophetMarkerIndex !== undefined) {
-    for (let k = 0; k <= prophetMarkerIndex && k < mainLine.length; k++) {
-      runningAtMarker += 1 + (mainLine[k].branches?.length ?? 0);
-    }
-  }
-
-  const entries: RejectionEntry[] = [];
-  let running = 0;
-  for (let i = 0; i < mainLine.length; i++) {
-    const parent = mainLine[i];
-    running++; // count the validated card itself
-    const branches = parent.branches ?? [];
-    for (const wrong of branches) {
-      running++;
-      // Reconstruct which sudden-death rule was active when this card was judged.
-      // Before the prophet was declared, the God rule (40 total) applied; at/after
-      // the marker, the Prophet rule (30 cards after marker) applied.
-      const prophetActive =
-        prophetMarkerIndex !== undefined && i >= prophetMarkerIndex;
-      let suddenDeath: RejectionEntry['suddenDeath'] = null;
-      if (prophetActive) {
-        // Engine checks the count BEFORE adding the current card (excludes it),
-        // counting flattened cards after the marker.
-        const cardsAfterMarker = running - 1 - runningAtMarker;
-        if (cardsAfterMarker >= 30) suddenDeath = 'prophet';
-      } else if (running >= 40) {
-        // Engine checks totalCardsPlayed AFTER increment (includes current card).
-        suddenDeath = 'god';
-      }
-      entries.push({
-        wrong,
-        parent,
-        parentIndex: i,
-        turn: running,
-        suddenDeath,
-      });
-    }
-  }
-  return entries;
+  return getPlayedCardPositions(mainLine)
+    .filter((position) => position.branchIndex !== undefined)
+    .map((position) => ({
+      wrong: position.card,
+      parent: mainLine[position.mainLineIndex],
+      parentIndex: position.mainLineIndex,
+      turn: position.turn,
+      suddenDeath: position.card.suddenDeath ?? null,
+    }));
 }
 
 export function RejectionsModal({
   open,
   onClose,
   mainLine,
-  prophetMarkerIndex,
   players,
 }: RejectionsModalProps) {
   useEffect(() => {
@@ -92,7 +59,7 @@ export function RejectionsModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  const entries = buildEntries(mainLine, prophetMarkerIndex);
+  const entries = open ? buildEntries(mainLine) : [];
 
   const nameFor = (id: string): string => {
     if (id === 'god') return 'God';

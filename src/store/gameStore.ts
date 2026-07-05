@@ -22,6 +22,7 @@ export interface StartNewGameOptions {
   ruleText?: string;
   ruleFunction?: (lastCard: import('../engine/types').Card, newCard: import('../engine/types').Card) => boolean;
   functionBody?: string;
+  nextRound?: boolean;
 }
 
 interface GameStore {
@@ -89,6 +90,30 @@ function isValidGameState(s: unknown): s is GameState {
       Array.isArray(player.hand)
     );
   });
+}
+
+type PersistedGameStore = Pick<
+  GameStore,
+  'state' | 'godFunctionBody' | 'hasSavedGame' | 'lastGodIndex' | 'trueProphetIndex'
+> & {
+  godRuleName?: string | null;
+};
+
+function getPersistedPayload(parsed: unknown): PersistedGameStore | null {
+  if (!parsed || typeof parsed !== 'object') return null;
+  const root = parsed as { state?: unknown };
+  const maybeWrapped = root.state;
+
+  if (maybeWrapped && typeof maybeWrapped === 'object' && 'state' in maybeWrapped) {
+    return maybeWrapped as PersistedGameStore;
+  }
+
+  // Legacy tests/dev saves used the partialized payload directly.
+  if ('state' in root) {
+    return parsed as PersistedGameStore;
+  }
+
+  return null;
 }
 
 // Module-level timeout tracking for dispatch effect timers.
@@ -417,16 +442,16 @@ export const useGameStore = create<GameStore>()(
     set({ selectedCards: new Set() });
   },
 
-  startNewGame: ({ configs, ruleText, ruleFunction, functionBody }: StartNewGameOptions) => {
+  startNewGame: ({ configs, ruleText, ruleFunction, functionBody, nextRound = false }: StartNewGameOptions) => {
     clearAllPendingTimeouts();
 
-    // A game launched from the menu honors the God the user selected in the
-    // configs. (Persisted lastGodIndex/trueProphetIndex are NOT consulted here:
-    // doing so silently moved the God seat off the user's choice on any game
-    // started after the first, turning their chosen "Dealer" into a regular
-    // card-playing AI. Round-to-round God rotation is a separate, deferred flow.)
+    const { trueProphetIndex, lastGodIndex } = get();
     const declaredGodIndex = configs.findIndex((c) => c.isGod);
-    const nextGodIndex = declaredGodIndex >= 0 ? declaredGodIndex : 0;
+    const nextGodIndex = nextRound && trueProphetIndex >= 0 && trueProphetIndex < configs.length
+      ? trueProphetIndex
+      : nextRound && lastGodIndex >= 0
+        ? (lastGodIndex + 1) % configs.length
+        : declaredGodIndex >= 0 ? declaredGodIndex : 0;
 
     // Set the chosen player as God (configs already carry the user's choice;
     // this normalizes the flags so exactly one config is God).
@@ -746,20 +771,29 @@ export const useGameStore = create<GameStore>()(
   },
 
   loadSavedGame: () => {
+    const saved = localStorage.getItem(SAVE_KEY);
+    if (!saved) return false;
+
+    let payload: PersistedGameStore | null;
     try {
-      const saved = localStorage.getItem(SAVE_KEY);
-      if (!saved) return false;
+      payload = getPersistedPayload(JSON.parse(saved));
+    } catch (err) {
+      console.warn('Failed to parse saved game:', err);
+      get().clearSavedGame();
+      return false;
+    }
 
-      const parsed = JSON.parse(saved);
-      const { state: savedState, godRuleName, godFunctionBody, lastGodIndex, trueProphetIndex } = parsed;
+    // Reject corrupt or schema-incompatible saves rather than load a state
+    // that would crash GameScreen. Drop the bad save so it stops resurfacing.
+    if (!payload || !isValidGameState(payload.state)) {
+      console.warn('[gameStore] Saved game is corrupt or incompatible; discarding.');
+      get().clearSavedGame();
+      return false;
+    }
 
-      // Reject corrupt or schema-incompatible saves rather than load a state
-      // that would crash GameScreen. Drop the bad save so it stops resurfacing.
-      if (!isValidGameState(savedState)) {
-        console.warn('[gameStore] Saved game is corrupt or incompatible; discarding.');
-        get().clearSavedGame();
-        return false;
-      }
+    try {
+      const savedState = payload.state;
+      const { godRuleName, godFunctionBody, lastGodIndex, trueProphetIndex } = payload;
 
       // Reconstruct compiled rule function or AI dealer
       let aiGod = null;
@@ -797,7 +831,6 @@ export const useGameStore = create<GameStore>()(
       return true;
     } catch (err) {
       console.warn('Failed to load saved game:', err);
-      get().clearSavedGame();
       return false;
     }
   },

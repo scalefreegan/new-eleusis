@@ -2,7 +2,7 @@
  * Scoring formulas for New Eleusis
  */
 
-import type { Player, GameState, PlayedCard } from './types';
+import type { Player, GameState } from './types';
 import { flattenPlayedCards } from './utils';
 
 /**

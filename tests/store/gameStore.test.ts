@@ -270,4 +270,99 @@ describe('loadSavedGame validation', () => {
     expect(useGameStore.getState().hasSavedGame).toBe(true);
     expect(useGameStore.getState().state.players.length).toBeGreaterThan(0);
   });
+
+  it('loads the nested blob written by zustand persist', () => {
+    startValidGame();
+    const live = useGameStore.getState().state;
+    localStorage.setItem(
+      'eleusis-game-save',
+      JSON.stringify({
+        state: {
+          state: { ...live, godRuleFunction: undefined },
+          godRuleName: 'rule',
+          godFunctionBody: null,
+          hasSavedGame: true,
+          lastGodIndex: 0,
+          trueProphetIndex: -1,
+        },
+        version: 0,
+      }),
+    );
+
+    const ok = useGameStore.getState().loadSavedGame();
+
+    expect(ok).toBe(true);
+    expect(localStorage.getItem('eleusis-game-save')).not.toBeNull();
+    expect(useGameStore.getState().state.players.length).toBeGreaterThan(0);
+  });
+});
+
+describe('God succession', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.clear();
+    useGameStore.getState().resetGame();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('uses a surviving True Prophet as God for the next round', () => {
+    const configs = [
+      { name: 'Dealer', type: 'ai' as const, isGod: true },
+      { name: 'Player 1', type: 'human' as const, isGod: false },
+      { name: 'Player 2', type: 'human' as const, isGod: false },
+    ];
+
+    useGameStore.getState().startNewGame({ configs });
+    useGameStore.setState((prev) => ({
+      state: { ...prev.state, phase: 'game_over' as const },
+      lastGodIndex: 0,
+      trueProphetIndex: 2,
+    }));
+
+    useGameStore.getState().startNewGame({ configs, nextRound: true });
+
+    expect(useGameStore.getState().state.players[2].isGod).toBe(true);
+    expect(useGameStore.getState().state.players[2].name).toBe('Player 2');
+    expect(useGameStore.getState().lastGodIndex).toBe(2);
+    expect(useGameStore.getState().trueProphetIndex).toBe(-1);
+  });
+
+  it('honors the configured God for a fresh menu start after a finished game reload', () => {
+    const configs = [
+      { name: 'Dealer', type: 'ai' as const, isGod: true },
+      { name: 'Player 1', type: 'human' as const, isGod: false },
+      { name: 'Player 2', type: 'human' as const, isGod: false },
+    ];
+
+    useGameStore.setState((prev) => ({
+      state: { ...prev.state, phase: 'game_over' as const },
+      lastGodIndex: 1,
+      trueProphetIndex: 2,
+    }));
+
+    useGameStore.getState().startNewGame({ configs });
+
+    expect(useGameStore.getState().state.players[0].isGod).toBe(true);
+    expect(useGameStore.getState().state.players[0].name).toBe('Dealer');
+  });
+
+  it('falls back to rotation when the persisted True Prophet index is out of range', () => {
+    const configs = [
+      { name: 'Dealer', type: 'ai' as const, isGod: true },
+      { name: 'Player 1', type: 'human' as const, isGod: false },
+      { name: 'Player 2', type: 'human' as const, isGod: false },
+    ];
+
+    useGameStore.setState((prev) => ({
+      state: { ...prev.state, phase: 'game_over' as const },
+      lastGodIndex: 0,
+      trueProphetIndex: 3,
+    }));
+
+    expect(() => useGameStore.getState().startNewGame({ configs, nextRound: true })).not.toThrow();
+    expect(useGameStore.getState().state.players[1].isGod).toBe(true);
+  });
 });

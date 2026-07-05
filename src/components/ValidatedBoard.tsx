@@ -9,11 +9,14 @@
  * they live in the RubbishBin / RejectionsModal.
  */
 
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Card } from './Card';
 import { GlassPanel } from './GlassPanel';
-import type { PlayedCard } from '../engine';
+import {
+  countPlayedCardsUpToMainLineIndex,
+  type PlayedCard,
+} from '../engine';
 import { getSuitSymbol } from '../utils/cardUtils';
 
 interface ValidatedBoardProps {
@@ -23,7 +26,8 @@ interface ValidatedBoardProps {
 
 // Layout constants for the compact-row fit calculation.
 const CARD_GAP = 16; // 1rem flex gap between cards
-const CHIP_RESERVE = 170; // px held back for the "+N earlier" chip on overflow
+const CHIP_RESERVE = 260; // px held back for the widest "+N earlier" chip
+const CARD_DECORATION_RESERVE = 32; // badges/markers can extend past card bounds
 const DEFAULT_CARD_WIDTH = 80; // fallback if the CSS var can't be read
 
 export function ValidatedBoard({ mainLine, prophetMarkerIndex }: ValidatedBoardProps) {
@@ -61,9 +65,10 @@ export function ValidatedBoard({ mainLine, prophetMarkerIndex }: ValidatedBoardP
   const compactVisibleCount = (() => {
     if (metrics.width === 0) return Math.min(total, 4); // pre-measure fallback
     const per = metrics.cardWidth + CARD_GAP;
-    const fitAll = Math.floor((metrics.width + CARD_GAP) / per);
+    const available = metrics.width - CARD_DECORATION_RESERVE;
+    const fitAll = Math.floor((available + CARD_GAP) / per);
     if (total <= fitAll) return total; // everything fits — let the row fill up
-    const fitWithChip = Math.floor((metrics.width - CHIP_RESERVE + CARD_GAP) / per);
+    const fitWithChip = Math.floor((available - CHIP_RESERVE + CARD_GAP) / per);
     return Math.max(1, Math.min(total, fitWithChip));
   })();
 
@@ -71,43 +76,42 @@ export function ValidatedBoard({ mainLine, prophetMarkerIndex }: ValidatedBoardP
   const visibleCards = mainLine.slice(visibleStart);
   const earlierCount = expanded ? 0 : visibleStart;
 
-  // Total cards (mainLine + branches) up to and including a given mainLine index.
-  // Used for milestone dots.
-  const countCardsUpToIndex = (index: number): number => {
-    let count = 0;
-    for (let i = 0; i <= index; i++) {
-      count++;
-      if (mainLine[i]?.branches) {
-        count += mainLine[i].branches!.length;
-      }
-    }
-    return count;
-  };
-
   const shouldShowWhiteMarker = (index: number): boolean => {
-    const here = countCardsUpToIndex(index);
-    const prev = index > 0 ? countCardsUpToIndex(index - 1) : 0;
+    const here = countPlayedCardsUpToMainLineIndex(mainLine, index);
+    const prev = countPlayedCardsUpToMainLineIndex(mainLine, index - 1);
     return Math.floor(here / 10) > Math.floor(prev / 10);
   };
 
   const shouldShowBlackMarker = (index: number): boolean => {
     if (prophetMarkerIndex === undefined || index <= prophetMarkerIndex) return false;
-    const afterProphet = countCardsUpToIndex(index) - countCardsUpToIndex(prophetMarkerIndex);
+    const afterProphet = countPlayedCardsUpToMainLineIndex(mainLine, index) -
+      countPlayedCardsUpToMainLineIndex(mainLine, prophetMarkerIndex);
     const afterProphetPrev = index > prophetMarkerIndex + 1
-      ? countCardsUpToIndex(index - 1) - countCardsUpToIndex(prophetMarkerIndex)
+      ? countPlayedCardsUpToMainLineIndex(mainLine, index - 1) -
+        countPlayedCardsUpToMainLineIndex(mainLine, prophetMarkerIndex)
       : 0;
     return Math.floor(afterProphet / 10) > Math.floor(afterProphetPrev / 10);
   };
 
+  const scrollToLatest = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    el.scrollTo({
+      left: el.scrollWidth - el.clientWidth,
+      behavior,
+    });
+  }, []);
+
   // Auto-scroll to latest card in expanded mode whenever the line grows.
   useEffect(() => {
-    if (expanded && scrollContainerRef.current && total > 0) {
-      scrollContainerRef.current.scrollTo({
-        left: scrollContainerRef.current.scrollWidth,
-        behavior: 'smooth',
-      });
-    }
-  }, [total, expanded]);
+    if (!expanded || total === 0) return;
+    const frame = requestAnimationFrame(() => scrollToLatest('auto'));
+    const retry = setTimeout(() => scrollToLatest('smooth'), 350);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(retry);
+    };
+  }, [total, expanded, scrollToLatest]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!scrollContainerRef.current) return;
@@ -131,10 +135,7 @@ export function ValidatedBoard({ mainLine, prophetMarkerIndex }: ValidatedBoardP
   const resetZoom = () => setZoom(1.0);
   const recenter = () => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({
-        left: scrollContainerRef.current.scrollWidth - scrollContainerRef.current.clientWidth,
-        behavior: 'smooth',
-      });
+      scrollToLatest('smooth');
     }
   };
   const resetView = () => {
@@ -230,7 +231,7 @@ export function ValidatedBoard({ mainLine, prophetMarkerIndex }: ValidatedBoardP
             >
               {showWhite && (
                 <div
-                  title={`${countCardsUpToIndex(index)} cards played`}
+                  title={`${countPlayedCardsUpToMainLineIndex(mainLine, index)} cards played`}
                   style={{
                     width: '16px',
                     height: '16px',
@@ -243,7 +244,7 @@ export function ValidatedBoard({ mainLine, prophetMarkerIndex }: ValidatedBoardP
               )}
               {showBlack && (
                 <div
-                  title={`${countCardsUpToIndex(index) - countCardsUpToIndex(prophetMarkerIndex!)} cards after Prophet`}
+                  title={`${countPlayedCardsUpToMainLineIndex(mainLine, index) - countPlayedCardsUpToMainLineIndex(mainLine, prophetMarkerIndex!)} cards after Prophet`}
                   style={{
                     width: '16px',
                     height: '16px',

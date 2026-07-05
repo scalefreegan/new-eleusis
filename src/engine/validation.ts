@@ -2,8 +2,12 @@
  * Turn validation logic for New Eleusis
  */
 
-import type { GameState, PlayedCard } from './types';
-import { flattenPlayedCards } from './utils';
+import type { GameState } from './types';
+import {
+  GOD_SUDDEN_DEATH_CARD_COUNT,
+  PROPHET_SUDDEN_DEATH_CARD_COUNT,
+  flattenPlayedCards,
+} from './utils';
 
 /**
  * Check if a player can play a card
@@ -155,10 +159,10 @@ export function isSuddenDeath(state: GameState): boolean {
     // If prophet exists: sudden death when cards played since prophetMarkerIndex >= 30
     const cardsAfterMarker = state.mainLine.slice(state.prophetMarkerIndex + 1);
     const allCardsAfterMarker = flattenPlayedCards(cardsAfterMarker);
-    return allCardsAfterMarker.length >= 30;
+    return allCardsAfterMarker.length >= PROPHET_SUDDEN_DEATH_CARD_COUNT;
   } else {
     // Otherwise: sudden death when totalCardsPlayed >= 40
-    return state.totalCardsPlayed >= 40;
+    return state.totalCardsPlayed >= GOD_SUDDEN_DEATH_CARD_COUNT;
   }
 }
 

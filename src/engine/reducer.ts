@@ -199,6 +199,15 @@ function judgeCard(state: GameState, action: { type: 'JUDGE_CARD'; cardId: strin
     return state;
   }
 
+  // Add to main line or branch immutably
+  let updatedMainLine = [...state.mainLine];
+  let remainingDeck = [...state.deck];
+  let updatedPlayers = [...state.players];
+
+  // Increment totalCardsPlayed
+  const totalCardsPlayed = state.totalCardsPlayed + 1;
+  const suddenDeathActive = isSuddenDeath({ ...state, totalCardsPlayed });
+
   // Get any prophet prediction for this card
   const prophetPrediction = state.pendingPlay.predictions[action.cardId];
 
@@ -208,12 +217,10 @@ function judgeCard(state: GameState, action: { type: 'JUDGE_CARD'; cardId: strin
     correct: action.correct,
     playedBy: state.pendingPlay.playerId,
     prophetPrediction,
+    suddenDeath: suddenDeathActive
+      ? state.prophetMarkerIndex !== undefined ? 'prophet' : 'god'
+      : undefined,
   };
-
-  // Add to main line or branch immutably
-  let updatedMainLine = [...state.mainLine];
-  let remainingDeck = [...state.deck];
-  let updatedPlayers = [...state.players];
 
   if (action.correct) {
     updatedMainLine.push(playedCard);
@@ -246,11 +253,8 @@ function judgeCard(state: GameState, action: { type: 'JUDGE_CARD'; cardId: strin
     }
   }
 
-  // Increment totalCardsPlayed
-  const totalCardsPlayed = state.totalCardsPlayed + 1;
-
   // Check if player should be expelled (sudden death + wrong play), unless skipPenalty is set
-  if (!action.correct && !action.skipPenalty && isSuddenDeath({ ...state, totalCardsPlayed })) {
+  if (!action.correct && !action.skipPenalty && suddenDeathActive) {
     updatedPlayers = updatedPlayers.map(p => {
       if (p.id === state.pendingPlay!.playerId) {
         return { ...p, isExpelled: true };
@@ -497,7 +501,7 @@ function resolveNoPlay(state: GameState, action: { type: 'RESOLVE_NO_PLAY'; vali
 
   let updatedPlayers = [...state.players];
   let updatedDeck = [...state.deck];
-  let updatedMainLine = [...state.mainLine];
+  const updatedMainLine = [...state.mainLine];
 
   if (action.valid) {
     // Valid no-play: discard entire hand, deal new hand with 4 fewer cards
