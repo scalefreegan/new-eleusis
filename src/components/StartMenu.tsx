@@ -19,7 +19,7 @@ interface StartMenuProps {
 export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const { hasSavedGame, loadSavedGame, lastGodIndex, trueProphetIndex } = useGameStore();
+  const { hasSavedGame, loadSavedGame } = useGameStore();
   const { available: compilerAvailable, loading: compilerLoading } = useRuleCompilerAvailable();
 
   // Default: AI dealer, 1 human player, 2 AI players
@@ -99,17 +99,13 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
     onStartGame(playerConfigs, isHumanGod ? dealerRule : undefined);
   };
 
-  // Calculate which player will be God next
-  // True Prophet takes precedence over rotation
-  const nextGodIndex = trueProphetIndex >= 0
-    ? trueProphetIndex
-    : (lastGodIndex + 1) % playerConfigs.length;
-
-  const isTrueProphetGod = trueProphetIndex >= 0;
-
   const handleContinue = () => {
-    loadSavedGame();
-    onContinueGame?.();
+    // Only enter the game if a valid save actually loaded. A corrupt/incompatible
+    // save is discarded by loadSavedGame (which clears hasSavedGame), so the
+    // Continue button simply disappears instead of crashing into the game.
+    if (loadSavedGame()) {
+      onContinueGame?.();
+    }
   };
 
   return (
@@ -239,32 +235,27 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
               marginBottom: '0.75rem',
             }}
           >
-            GOD {isTrueProphetGod
-              ? <span style={{ fontSize: '0.9rem', color: 'var(--accent-gold)' }}>(True Prophet!)</span>
-              : lastGodIndex >= 0 && <span style={{ fontSize: '0.9rem', color: 'var(--text-dim)' }}>(rotates each game)</span>
-            }
+            GOD
           </label>
           <div
             style={{
               padding: '1rem',
-              background: nextGodIndex === 0 ? 'rgba(255, 215, 0, 0.1)' : 'rgba(0, 0, 0, 0.3)',
+              background: 'rgba(255, 215, 0, 0.1)',
               borderRadius: '8px',
-              border: nextGodIndex === 0 ? '2px solid var(--accent-gold)' : '1px solid var(--accent-gold)',
+              border: '2px solid var(--accent-gold)',
             }}
           >
-            {nextGodIndex === 0 && (
-              <div
-                style={{
-                  fontSize: '1.0rem',
-                  color: 'var(--accent-gold)',
-                  fontWeight: 'bold',
-                  textAlign: 'center',
-                  marginBottom: '0.5rem',
-                }}
-              >
-                👑 {isTrueProphetGod ? 'True Prophet!' : 'Next God'}
-              </div>
-            )}
+            <div
+              style={{
+                fontSize: '1.0rem',
+                color: 'var(--accent-gold)',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                marginBottom: '0.5rem',
+              }}
+            >
+              👑 God
+            </div>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <input
                 type="text"
@@ -405,9 +396,6 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
           </label>
           <AnimatePresence>
             {playerList.map((player, index) => {
-              const playerConfigIndex = index + 1; // +1 because playerList doesn't include dealer
-              const isNextGod = playerConfigIndex === nextGodIndex;
-
               return (
               <motion.div
                 key={index}
@@ -418,24 +406,11 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
                 style={{
                   marginBottom: '0.75rem',
                   padding: '1rem',
-                  background: isNextGod ? 'rgba(255, 215, 0, 0.1)' : 'rgba(0, 0, 0, 0.3)',
+                  background: 'rgba(0, 0, 0, 0.3)',
                   borderRadius: '8px',
-                  border: isNextGod ? '2px solid var(--accent-gold)' : '1px solid rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
                 }}
               >
-                {isNextGod && (
-                  <div
-                    style={{
-                      fontSize: '1.0rem',
-                      color: 'var(--accent-gold)',
-                      fontWeight: 'bold',
-                      textAlign: 'center',
-                      marginBottom: '0.5rem',
-                    }}
-                  >
-                    👑 {isTrueProphetGod ? 'True Prophet!' : 'Next God'}
-                  </div>
-                )}
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                   <input
                     type="text"
@@ -620,7 +595,7 @@ export function StartMenu({ onStartGame, onContinueGame }: StartMenuProps) {
           <br />
           • The Dealer judges each card Right or Wrong
           <br />
-          • Right cards continue the MainLine
+          • Right cards extend the validated sequence
           <br />
           • Wrong cards branch off
           <br />• Try to deduce the secret pattern!

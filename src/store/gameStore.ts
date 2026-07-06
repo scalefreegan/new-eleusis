@@ -11,6 +11,7 @@ import {
   selectCardsToPlay,
   type GameState,
   type GameAction,
+  type Player,
   type PlayerConfig,
 } from '../engine';
 import { sounds } from '../audio/sounds';
@@ -21,6 +22,7 @@ export interface StartNewGameOptions {
   ruleText?: string;
   ruleFunction?: (lastCard: import('../engine/types').Card, newCard: import('../engine/types').Card) => boolean;
   functionBody?: string;
+  nextRound?: boolean;
 }
 
 interface GameStore {
@@ -43,7 +45,7 @@ interface GameStore {
   // Game setup
   startNewGame: (options: StartNewGameOptions) => void;
   resetGame: () => void;
-  loadSavedGame: () => void;
+  loadSavedGame: () => boolean;
   clearSavedGame: () => void;
 
   // Multiplayer actions
@@ -62,6 +64,57 @@ interface GameStore {
 }
 
 const SAVE_KEY = 'eleusis-game-save';
+
+/**
+ * Structural validation for a persisted/rehydrated GameState. A corrupt or
+ * schema-incompatible save (e.g. one missing `players`) must be rejected — the
+ * UI assumes these fields exist, so loading a broken state crashes GameScreen.
+ * This is deliberately a shallow shape check, not a deep game-rules audit.
+ */
+function isValidGameState(s: unknown): s is GameState {
+  if (!s || typeof s !== 'object') return false;
+  const g = s as Partial<GameState>;
+  if (!Array.isArray(g.players) || g.players.length === 0) return false;
+  if (typeof g.currentPlayerIndex !== 'number') return false;
+  if (g.currentPlayerIndex < 0 || g.currentPlayerIndex >= g.players.length) return false;
+  if (!Array.isArray(g.mainLine)) return false;
+  if (!Array.isArray(g.deck)) return false;
+  if (typeof g.phase !== 'string') return false;
+  // Every player must carry the fields the UI reads off them.
+  return g.players.every((p) => {
+    const player = p as Player;
+    return (
+      !!player &&
+      typeof player === 'object' &&
+      typeof player.id === 'string' &&
+      Array.isArray(player.hand)
+    );
+  });
+}
+
+type PersistedGameStore = Pick<
+  GameStore,
+  'state' | 'godFunctionBody' | 'hasSavedGame' | 'lastGodIndex' | 'trueProphetIndex'
+> & {
+  godRuleName?: string | null;
+};
+
+function getPersistedPayload(parsed: unknown): PersistedGameStore | null {
+  if (!parsed || typeof parsed !== 'object') return null;
+  const root = parsed as { state?: unknown };
+  const maybeWrapped = root.state;
+
+  if (maybeWrapped && typeof maybeWrapped === 'object' && 'state' in maybeWrapped) {
+    return maybeWrapped as PersistedGameStore;
+  }
+
+  // Legacy tests/dev saves used the partialized payload directly.
+  if ('state' in root) {
+    return parsed as PersistedGameStore;
+  }
+
+  return null;
+}
 
 // Module-level timeout tracking for dispatch effect timers.
 // Cleared on resetGame and when pendingPlay is cleared (manual judgment).
@@ -389,18 +442,19 @@ export const useGameStore = create<GameStore>()(
     set({ selectedCards: new Set() });
   },
 
-  startNewGame: ({ configs, ruleText, ruleFunction, functionBody }: StartNewGameOptions) => {
+  startNewGame: ({ configs, ruleText, ruleFunction, functionBody, nextRound = false }: StartNewGameOptions) => {
     clearAllPendingTimeouts();
-    const { lastGodIndex, trueProphetIndex } = get();
 
-    // Determine next God index
-    // If there was a True Prophet (not overthrown), they become next God
-    // Otherwise, rotate through all players sequentially
-    const nextGodIndex = trueProphetIndex >= 0
+    const { trueProphetIndex, lastGodIndex } = get();
+    const declaredGodIndex = configs.findIndex((c) => c.isGod);
+    const nextGodIndex = nextRound && trueProphetIndex >= 0 && trueProphetIndex < configs.length
       ? trueProphetIndex
-      : (lastGodIndex + 1) % configs.length;
+      : nextRound && lastGodIndex >= 0
+        ? (lastGodIndex + 1) % configs.length
+        : declaredGodIndex >= 0 ? declaredGodIndex : 0;
 
-    // Update configs to set the next player as God
+    // Set the chosen player as God (configs already carry the user's choice;
+    // this normalizes the flags so exactly one config is God).
     const rotatedConfigs = configs.map((config, index) => ({
       ...config,
       isGod: index === nextGodIndex,
@@ -717,12 +771,29 @@ export const useGameStore = create<GameStore>()(
   },
 
   loadSavedGame: () => {
-    try {
-      const saved = localStorage.getItem(SAVE_KEY);
-      if (!saved) return;
+    const saved = localStorage.getItem(SAVE_KEY);
+    if (!saved) return false;
 
-      const parsed = JSON.parse(saved);
-      const { state: savedState, godRuleName, godFunctionBody, lastGodIndex, trueProphetIndex } = parsed;
+    let payload: PersistedGameStore | null;
+    try {
+      payload = getPersistedPayload(JSON.parse(saved));
+    } catch (err) {
+      console.warn('Failed to parse saved game:', err);
+      get().clearSavedGame();
+      return false;
+    }
+
+    // Reject corrupt or schema-incompatible saves rather than load a state
+    // that would crash GameScreen. Drop the bad save so it stops resurfacing.
+    if (!payload || !isValidGameState(payload.state)) {
+      console.warn('[gameStore] Saved game is corrupt or incompatible; discarding.');
+      get().clearSavedGame();
+      return false;
+    }
+
+    try {
+      const savedState = payload.state;
+      const { godRuleName, godFunctionBody, lastGodIndex, trueProphetIndex } = payload;
 
       // Reconstruct compiled rule function or AI dealer
       let aiGod = null;
@@ -757,8 +828,10 @@ export const useGameStore = create<GameStore>()(
         lastGodIndex: lastGodIndex ?? -1,
         trueProphetIndex: trueProphetIndex ?? -1,
       });
+      return true;
     } catch (err) {
       console.warn('Failed to load saved game:', err);
+      return false;
     }
   },
 
@@ -773,14 +846,17 @@ export const useGameStore = create<GameStore>()(
 
   getCurrentPlayer: () => {
     const { state } = get();
-    return state.players[state.currentPlayerIndex];
+    return state.players?.[state.currentPlayerIndex];
   },
 
   getActiveLocalPlayer: () => {
     const { state } = get();
-    const currentPlayer = state.players[state.currentPlayerIndex];
-    // Only return current player if they are human (local)
-    return currentPlayer?.type === 'human' ? currentPlayer : undefined;
+    const currentPlayer = state.players?.[state.currentPlayerIndex];
+    // Only return the current player if they are a human, non-God (the God
+    // never takes play turns, so must never be treated as the active player).
+    return currentPlayer?.type === 'human' && !currentPlayer.isGod
+      ? currentPlayer
+      : undefined;
   },
     }),
     {
@@ -795,6 +871,19 @@ export const useGameStore = create<GameStore>()(
         trueProphetIndex: state.trueProphetIndex,
       }),
       onRehydrateStorage: () => (state) => {
+        if (!state) return;
+
+        // A structurally-broken persisted state (corrupt or from an older
+        // schema) must never reach the UI. Replace it with a fresh setup state
+        // and forget the save so "Continue Game" doesn't offer a crash.
+        if (!isValidGameState(state.state)) {
+          state.state = createInitialState();
+          state.godFunctionBody = null;
+          state.aiGod = null;
+          state.hasSavedGame = false;
+          return;
+        }
+
         // Reconstruct compiled human God rule function from persisted body
         if (state?.godFunctionBody) {
           const v = validateFunctionBody(state.godFunctionBody);

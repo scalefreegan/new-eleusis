@@ -2,20 +2,29 @@
  * Game Over Screen with leaderboard and play again option
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { GlassPanel } from './GlassPanel';
-import { calculateFinalScores, type GameState } from '../engine';
+import { calculateFinalScores, type GameState, type PlayerType } from '../engine';
 import { sounds } from '../audio/sounds';
 
 interface GameOverScreenProps {
   state: GameState;
-  onPlayAgain: () => void;
+  onPlayAgain: (ruleText?: string) => void;
   onMainMenu: () => void;
+  nextGodName?: string;
+  nextGodType?: PlayerType;
 }
 
-export function GameOverScreen({ state, onPlayAgain, onMainMenu }: GameOverScreenProps) {
+export function GameOverScreen({
+  state,
+  onPlayAgain,
+  onMainMenu,
+  nextGodName,
+  nextGodType,
+}: GameOverScreenProps) {
   const scores = calculateFinalScores(state);
+  const [nextRuleText, setNextRuleText] = useState('');
 
   // Sort players by score (descending)
   const sortedPlayers = [...state.players]
@@ -181,10 +190,44 @@ export function GameOverScreen({ state, onPlayAgain, onMainMenu }: GameOverScree
             ))}
           </div>
 
+          {nextGodType === 'human' && (
+            <div style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '1.0rem',
+                  color: 'var(--accent-gold)',
+                  marginBottom: '0.5rem',
+                  fontFamily: 'Press Start 2P, cursive',
+                }}
+              >
+                {nextGodName ?? 'Next God'} Secret Rule
+              </label>
+              <textarea
+                value={nextRuleText}
+                onChange={(e) => setNextRuleText(e.target.value)}
+                placeholder="Enter a new secret rule"
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '2px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  color: 'var(--text-light)',
+                  fontSize: '1.0rem',
+                  fontFamily: 'Press Start 2P, cursive',
+                  resize: 'vertical',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          )}
+
           {/* Actions */}
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
             <button
-              onClick={onPlayAgain}
+              onClick={() => onPlayAgain(nextRuleText)}
               style={{
                 padding: '1rem 2rem',
                 background: 'var(--accent-purple)',

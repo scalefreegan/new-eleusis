@@ -80,6 +80,16 @@ export {
   updateHypothesisEngine,
 } from './ai/player';
 
+export {
+  GOD_SUDDEN_DEATH_CARD_COUNT,
+  PROPHET_SUDDEN_DEATH_CARD_COUNT,
+  flattenPlayedCards,
+  getPlayedCardPositions,
+  countPlayedCardsUpToMainLineIndex,
+  countRejectedCards,
+  type PlayedCardPosition,
+} from './utils';
+
 export type { Observation } from './ai/hypothesis';
 export {
   HypothesisEngine,

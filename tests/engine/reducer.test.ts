@@ -60,7 +60,7 @@ describe('gameReducer', () => {
     });
 
     it('sets the rule function', () => {
-      const ruleFn = (lastCard: any, newCard: any) => true;
+      const ruleFn = () => true;
       const state = gameReducer(initialState, {
         type: 'SET_GOD_RULE',
         rule: 'custom',
@@ -771,6 +771,28 @@ describe('gameReducer', () => {
       const updatedPlayer = state.players.find(p => p.id === 'player1')!;
       // Player SHOULD be expelled (sudden death + wrong play + no skipPenalty)
       expect(updatedPlayer.isExpelled).toBe(true);
+    });
+
+    it('stamps rejected cards with the sudden-death rule active when judged', () => {
+      const player = initialState.players.find(p => p.id === 'player1')!;
+      const cardId = player.hand[0].id;
+
+      initialState.totalCardsPlayed = 39;
+
+      let state = gameReducer(initialState, {
+        type: 'PLAY_CARD',
+        playerId: 'player1',
+        cardIds: [cardId],
+      });
+
+      state = gameReducer(state, {
+        type: 'JUDGE_CARD',
+        cardId,
+        correct: false,
+      });
+
+      const lastCard = state.mainLine[state.mainLine.length - 1];
+      expect(lastCard.branches![0].suddenDeath).toBe('god');
     });
   });
 

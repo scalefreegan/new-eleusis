@@ -85,7 +85,7 @@ export function HelpOverlay({ onClose }: HelpOverlayProps) {
                   On your turn, select one or more cards (up to 4) and click "Play Cards"
                 </li>
                 <li style={{ marginBottom: '0.5rem' }}>
-                  Cards that follow the rule are added to the main line (correct)
+                  Cards that follow the rule are added to the validated sequence (correct)
                 </li>
                 <li style={{ marginBottom: '0.5rem' }}>
                   Cards that break the rule branch off as incorrect

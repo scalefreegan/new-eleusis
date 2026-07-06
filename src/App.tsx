@@ -15,6 +15,7 @@ function App() {
   const [appState, setAppState] = useState<'menu' | 'compilingRule' | 'game'>('menu');
   const [pendingConfigs, setPendingConfigs] = useState<PlayerConfig[] | null>(null);
   const [pendingRuleText, setPendingRuleText] = useState('');
+  const [pendingNextRound, setPendingNextRound] = useState(false);
   const startNewGame = useGameStore((state) => state.startNewGame);
   const resetGame = useGameStore((state) => state.resetGame);
 
@@ -22,7 +23,7 @@ function App() {
     if (canvasRef.current && !shaderRef.current) {
       const shader = createBackgroundShader(canvasRef.current);
       shaderRef.current = shader;
-      if (!shader) setShaderFailed(true);
+      if (!shader) queueMicrotask(() => setShaderFailed(true));
     }
 
     return () => {
@@ -64,6 +65,7 @@ function App() {
     if (humanGod && hasRule) {
       setPendingConfigs(configs);
       setPendingRuleText(ruleText.trim());
+      setPendingNextRound(false);
       setAppState('compilingRule');
     } else {
       startNewGame({ configs, ruleText });
@@ -71,21 +73,38 @@ function App() {
     }
   };
 
+  const handleStartNextRound = (configs: PlayerConfig[], ruleText?: string) => {
+    const humanGod = configs.find(c => c.isGod && c.type === 'human');
+    const hasRule = ruleText && ruleText.trim().length > 0;
+
+    if (humanGod && hasRule) {
+      setPendingConfigs(configs);
+      setPendingRuleText(ruleText.trim());
+      setPendingNextRound(true);
+      setAppState('compilingRule');
+    } else {
+      startNewGame({ configs, ruleText, nextRound: true });
+      setAppState('game');
+    }
+  };
+
   const handleCompiled = (fn: (lastCard: Card, newCard: Card) => boolean, functionBody: string) => {
     if (pendingConfigs) {
-      startNewGame({ configs: pendingConfigs, ruleText: pendingRuleText, ruleFunction: fn, functionBody });
+      startNewGame({ configs: pendingConfigs, ruleText: pendingRuleText, ruleFunction: fn, functionBody, nextRound: pendingNextRound });
     }
     setPendingConfigs(null);
     setPendingRuleText('');
+    setPendingNextRound(false);
     setAppState('game');
   };
 
   const handleSkipCompilation = () => {
     if (pendingConfigs) {
-      startNewGame({ configs: pendingConfigs, ruleText: pendingRuleText });
+      startNewGame({ configs: pendingConfigs, ruleText: pendingRuleText, nextRound: pendingNextRound });
     }
     setPendingConfigs(null);
     setPendingRuleText('');
+    setPendingNextRound(false);
     setAppState('game');
   };
 
@@ -93,6 +112,7 @@ function App() {
     resetGame();
     setPendingConfigs(null);
     setPendingRuleText('');
+    setPendingNextRound(false);
     setAppState('menu');
   };
 
@@ -140,7 +160,7 @@ function App() {
       )}
       {appState === 'game' && (
         <GameErrorBoundary onReset={handleReturnToMenu}>
-          <GameScreen onReturnToMenu={handleReturnToMenu} />
+          <GameScreen onReturnToMenu={handleReturnToMenu} onStartNextRound={handleStartNextRound} />
         </GameErrorBoundary>
       )}
     </div>
