@@ -1,22 +1,49 @@
-# New Eleusis
+<h1 align="center">New Eleusis</h1>
 
-A digital implementation of **New Eleusis**, the card game that simulates the scientific method. One player (the "God" or dealer) creates a secret rule governing which cards can be played, and the other players ("Scientists") perform experiments by playing cards to deduce the rule.
+<p align="center"><b>A digital take on the card game that turns the scientific method into play.</b></p>
+<p align="center">One player invents a secret rule. Everyone else runs experiments, one card at a time, to work out what it is.</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB" alt="React">
+  <img src="https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite">
+  <img src="https://img.shields.io/badge/Android-Capacitor-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android via Capacitor">
+</p>
+
+<p align="center">
+  <img src="docs/hero.png" alt="New Eleusis gameplay: a sequence of cards on a table, with accepted and rejected plays" width="800">
+</p>
+<!-- TODO: generate docs/hero.png from docs/hero-image-prompt.md -->
+<p align="center"><sub><i>Play a card, learn from the verdict, and narrow in on the hidden rule.</i></sub></p>
 
 ## Features
 
-- **AI or Human God** — The dealer can be an AI that picks from 38+ built-in rules, or a human player who invents their own
-- **Rule Compiler** — Human Gods can describe their rule in plain English and have it compiled into a deterministic judge function (cloud or local LLM backends)
-- **Prophet System** — Players who think they know the rule can declare themselves Prophet and predict outcomes for other players
-- **Hot-seat Multiplayer** — Pass-and-play support with turn transition overlays
-- **Scoring & Sudden Death** — Full implementation of New Eleusis scoring, markers, and sudden death mechanics
+- **AI or human God**: the dealer can be an AI that picks from 38+ built-in rules, or a human who invents their own.
+- **Rule compiler**: human Gods describe a rule in plain English and it is compiled into a deterministic judge function, using a cloud or a local LLM backend.
+- **Prophet system**: declare yourself Prophet when you think you know the rule, then predict outcomes for other players.
+- **Hot-seat multiplayer**: pass-and-play with turn transition overlays.
+- **Scoring and sudden death**: New Eleusis scoring, markers, and sudden death mechanics.
+- **Android build**: wrapped with Capacitor.
 
-## Getting Started
+## How it works
+
+New Eleusis simulates scientific research. The dealer ("God" or "Nature") writes a secret rule that decides which cards may be played, based only on the cards already played correctly. The other players ("Scientists") play cards as experiments: legal plays extend the main line, illegal ones are set aside. Players race to form a theory, and the first with a good one can become Prophet. Others then try to overthrow the Prophet by finding an experiment whose result cannot be predicted.
+
+The full rules are in [`NEW_ELEUSIS_RULES.md`](./NEW_ELEUSIS_RULES.md).
+
+## Get started
 
 ```bash
 npm install       # Install dependencies
-npm run dev       # Start development server
-npm test          # Run test suite
-npm run build     # Production build
+npm run dev       # Start the development server
+```
+
+Other scripts:
+
+```bash
+npm run build     # Type-check and build for production
+npm run lint      # Lint the codebase
+npm test          # Run the test suite
 ```
 
 ### Android (Capacitor)
@@ -24,8 +51,17 @@ npm run build     # Production build
 ```bash
 npm run cap:sync  # Build and sync to Android
 npm run cap:open  # Open in Android Studio
-npm run cap:run   # Run on connected device
+npm run cap:run   # Run on a connected device
 ```
+
+## Rule compiler
+
+The rule compiler turns natural language (for example, "alternate red and black cards") into a deterministic JavaScript judge function. Two backends are available:
+
+- **Cloud** (dev only): routes through a Vite dev server plugin to the Claude CLI for high-quality compilation with examples.
+- **Local** (everywhere): runs a quantized Qwen model in the browser with Transformers.js over WASM.
+
+Compiled functions are sandboxed with forbidden-pattern detection and stress-tested before use.
 
 ## Architecture
 
@@ -38,27 +74,13 @@ src/
 │   ├── validation.ts # Rule validation
 │   ├── scoring.ts    # Score calculation
 │   └── deck.ts       # Card utilities
-├── store/            # Zustand state management
-│   └── gameStore.ts  # Store wrapping the reducer + side effects
+├── store/            # Zustand state management (wraps the reducer)
 ├── components/       # React UI (retro arcade aesthetic)
 ├── services/         # Rule compiler client service
 └── audio/            # Sound effects
 server/               # Vite dev server plugins (rule compiler API)
 tests/                # Vitest test suite
 ```
-
-## Rule Compiler
-
-The rule compiler converts natural language rules (e.g., "alternate red and black cards") into deterministic JavaScript judge functions. Two backends are available:
-
-- **Cloud** (dev only) — Routes through a Vite dev server plugin to Claude CLI for high-quality compilation with examples
-- **Local** (everywhere) — Uses Transformers.js with a quantized Qwen model running in-browser via WASM
-
-Compiled functions are sandboxed with security validation (forbidden pattern detection) and stress-tested before use.
-
-## Game Rules
-
-See [`NEW_ELEUSIS_RULES.md`](./NEW_ELEUSIS_RULES.md) for the complete official rules of New Eleusis.
 
 ## Testing
 
@@ -69,4 +91,4 @@ npm run test:rules    # Rule bank cross-validation (requires dev server + Claude
 
 ## License
 
-Private project.
+Private project. All rights reserved.
