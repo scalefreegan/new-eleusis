@@ -18,10 +18,11 @@
 
 ## Features
 
-- **AI or human God**: the dealer can be an AI that picks from 38+ built-in rules, or a human who invents their own.
+- **AI or human God**: the dealer can be an AI that picks from 41 built-in rules, or a human who invents their own.
 - **Rule compiler**: human Gods describe a rule in plain English and it is compiled into a deterministic judge function, using a cloud or a local LLM backend.
 - **Prophet system**: declare yourself Prophet when you think you know the rule, then predict outcomes for other players.
 - **Hot-seat multiplayer**: pass-and-play with turn transition overlays.
+- **Validated board and rubbish bin**: accepted plays build the main line, rejected plays go to a rubbish bin you can review.
 - **Scoring and sudden death**: New Eleusis scoring, markers, and sudden death mechanics.
 - **Android build**: wrapped with Capacitor.
 
@@ -43,6 +44,8 @@ Other scripts:
 ```bash
 npm run build     # Type-check and build for production
 npm run lint      # Lint the codebase
+npm run server    # Standalone rule compiler API (default port 3001)
+npm run download-model  # Pre-download the local model
 npm test          # Run the test suite
 ```
 
@@ -59,7 +62,7 @@ npm run cap:run   # Run on a connected device
 The rule compiler turns natural language (for example, "alternate red and black cards") into a deterministic JavaScript judge function. Two backends are available:
 
 - **Cloud** (dev only): routes through a Vite dev server plugin to the Claude CLI for high-quality compilation with examples.
-- **Local** (everywhere): runs a quantized Qwen model in the browser with Transformers.js over WASM.
+- **Local** (everywhere): runs a quantized Qwen2.5-Coder 1.5B model in the browser with Transformers.js over WASM (about a 900 MB first-time download, cached, and cancellable from the UI).
 
 Compiled functions are sandboxed with forbidden-pattern detection and stress-tested before use.
 
@@ -76,16 +79,18 @@ src/
 │   └── deck.ts       # Card utilities
 ├── store/            # Zustand state management (wraps the reducer)
 ├── components/       # React UI (retro arcade aesthetic)
+├── utils/            # Shared card helpers
 ├── services/         # Rule compiler client service
 └── audio/            # Sound effects
-server/               # Vite dev server plugins (rule compiler API)
-tests/                # Vitest test suite
+server/               # Rule compiler API (Vite dev plugin + standalone server)
+scripts/              # Model download script
+tests/                # Vitest suite, including a game-simulation harness
 ```
 
 ## Testing
 
 ```bash
-npm test              # Unit + integration tests (~350 tests)
+npm test              # Unit + integration tests (873 tests across 39 files)
 npm run test:rules    # Rule bank cross-validation (requires dev server + Claude CLI)
 ```
 
