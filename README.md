@@ -17,12 +17,55 @@
 
 ## Features
 
-- **AI or human God**: the dealer can be an AI that picks from 41 built-in rules, or a human who invents their own.
-- **Rule compiler**: human Gods describe a rule in plain English and it is compiled into a deterministic judge function, using a cloud or a local LLM backend.
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/game-in-progress.png" width="100%" alt="A game in progress: six validated cards on the main line, seven rejected in the rubbish bin">
+<sub><i>Round 13: the main line so far, and seven rejected plays waiting to be reviewed.</i></sub>
+<h3>Play the experiment</h3>
+Every card you play tests a hypothesis. Accepted plays build the validated main line, and rejected plays go to a rubbish bin you can open and study. When you think you've cracked it, declare yourself Prophet and start predicting for everyone else.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/ai-god-setup.png" width="100%" alt="Start menu with quick setup and an AI God">
+<sub><i>Solo vs AI, 2 Players or Party Mode, then choose who plays God.</i></sub>
+<h3>AI or human God</h3>
+The dealer can be an AI that picks a secret rule from 41 built-in rules, or a human who invents their own. Mix human and AI players for solo play or pass-and-play hot-seat games.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/human-god-rule.png" width="100%" alt="A human God typing a secret rule in plain English">
+<sub><i>"Alternate red and black cards, starting with red."</i></sub>
+<h3>Write a rule in plain English</h3>
+A human God types the secret rule in ordinary words. It compiles into a deterministic judge function when the game starts, so every play is judged the same way.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/rule-compiler-backends.png" width="100%" alt="Choosing a rule-compiler backend: local AI, cloud AI or rule templates">
+<sub><i>Local, cloud or template: pick how the rule gets compiled.</i></sub>
+<h3>Local or cloud compiler</h3>
+Compile with a local Qwen2.5-Coder model that runs in the browser and works offline (on Android too), with Claude through the dev server, or pick from ready-made rule templates with no download at all.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/rule-clarification.png" width="100%" alt="The rule compiler asking a clarifying question">
+<sub><i>The compiler flags a rule it can't enforce as written.</i></sub>
+<h3>It asks when a rule is ambiguous</h3>
+If a rule can't be expressed as written, the compiler says why and asks a question. Answer it and recompile, or accept its reading and carry on.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/rule-compiled.png" width="100%" alt="Compiled rule with example card pairs to verify">
+<sub><i>Example plays to check before the game begins.</i></sub>
+<h3>Verify before you play</h3>
+The compiled rule comes back with worked examples. Flip any verdict that looks wrong and recompile, or approve and start, so the judge matches what you meant.
+</td>
+</tr>
+</table>
+
+Also included:
+
 - **Prophet system**: declare yourself Prophet when you think you know the rule, then predict outcomes for other players.
-- **Hot-seat multiplayer**: pass-and-play with turn transition overlays.
-- **Validated board and rubbish bin**: accepted plays build the main line, rejected plays go to a rubbish bin you can review.
-- **Scoring and sudden death**: New Eleusis scoring, markers, and sudden death mechanics.
+- **Scoring and sudden death**: New Eleusis scoring, markers and sudden-death mechanics.
 - **Android build**: wrapped with Capacitor.
 
 ## How it works
