@@ -13,7 +13,6 @@
 <p align="center">
   <img src="docs/hero.png" alt="New Eleusis gameplay: a sequence of cards on a table, with accepted and rejected plays" width="800">
 </p>
-<!-- TODO: generate docs/hero.png from docs/hero-image-prompt.md -->
 <p align="center"><sub><i>Play a card, learn from the verdict, and narrow in on the hidden rule.</i></sub></p>
 
 ## Features
