@@ -138,4 +138,4 @@ npm run test:rules    # Rule bank cross-validation (requires dev server + Claude
 
 ## License
 
-Private project. All rights reserved.
+[GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-only). You may use, change and share New Eleusis, but if you distribute it or run a changed version as a network service, you must offer its users the complete source under the same license.
